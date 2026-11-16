@@ -20,7 +20,7 @@ Last updated: 2026-11-16
   - 13 — Ship a rofi-like layout
   - 14 — Rofi parity inventory and empirical check
   - 15 — Icon slots and their fallback · done 2026-11-16
-  - 11 — Spec reference and component guide
+  - 11 — Spec reference and component guide · done 2026-11-16
 - Decisions
 - Risks
 - Open questions
@@ -124,7 +124,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 05
 - detail: `docs/specs/15-icons.md`
 
-### 11 — Spec reference and component guide
+### 11 — Spec reference and component guide · done 2026-11-16
 - `docs/spec-reference.md` listing every RON field, its wire name, meaning and default, the key-map merge rules, the icon slot contract, and a guide for adding a `Component`, both complete enough that a new picker is written from the doc alone — checkable by writing one new spec (a wifi or clipboard picker) using only the reference, with no source reading.
 - after: 05
 - detail: `docs/specs/11-docs.md`

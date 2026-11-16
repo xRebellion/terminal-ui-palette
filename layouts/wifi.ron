@@ -1,0 +1,30 @@
+// A wifi picker: query, network list, hints — written from
+// docs/spec-reference.md without looking at the source (item 11's checkable).
+(
+    window: (title: "wifi"),
+    theme: (
+        accent: "#a6e62a",
+        selected_bg: "#141411",
+        text: "#f8f8f2",
+        dim: "#75715e",
+    ),
+    host: (width: 50, height: 12, class: "tuipalette"),
+    layout: (
+        dir: Vertical,
+        sizes: ["3", "fill", "1"],
+        children: [
+            (pane: "query"),
+            (pane: "results"),
+            (pane: "status"),
+        ],
+    ),
+    panes: [
+        (id: "query", kind: Input, title: "network"),
+        (id: "results", kind: Menu, title: "available"),
+        (id: "status", kind: Status, items: ["enter connect", "esc cancel"]),
+    ],
+    keys: {
+        "esc": Some(Quit),
+        "enter": Some(Accept),
+    },
+)
