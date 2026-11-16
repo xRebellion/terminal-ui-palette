@@ -11,7 +11,8 @@ Last updated: 2026-11-16
 
 ## Known broken and believed
 - **Believed:** `--inline` in kitty leaves the cursor and scrollback clean on exit — verified only in a pty, where ratatui's cleanup ran but kitty's own scroll region was not involved; would confirm by running `tuipalette --inline --height 8` in kitty and scrolling afterwards.
-- **Unverified:** the floating window's class, size and position have never been seen by a compositor — `hyprctl clients -j` is the check, and it needs a live Hyprland session.
+- **Believed:** inline leaves kitty's scrollback and cursor exactly as it found them — verified in a pty only; would confirm by running `--inline --height 8` in kitty and scrolling afterwards.
+- **Done, not suspected:** the floating window's class, size and position are now checked against a live compositor by `scripts/verify-floating.sh`, which also proves the launch takes no focus.
 
 ## State of what the project touches
 | what | state now | checked with |
@@ -19,13 +20,14 @@ Last updated: 2026-11-16
 | repo root | git, clean tree, items 01–03 committed | `git status --porcelain`; `git log --oneline` |
 | `crates/tuipalette-core` | spec, layout, keys, router, five built-ins, matcher, picker; 63 tests | `cargo test -p tuipalette-core` |
 | `crates/tuipalette-tui` | crossterm backend, key decoding, draw loop | `cargo test -p tuipalette-tui` |
-| `scripts/` | `pty-check.py`, `tuipalette-floating.sh` (dry-run verified) | `TUIPALETTE_DRY_RUN=1 … tuipalette-floating.sh` |
+| `scripts/` | pty harness, floating adapter, app/dmenu providers, focus-safe verification | `scripts/verify-floating.sh` → `result: ok` |
+| `layouts/` | `rofi-like.ron`, `dmenu.ron` (data, no crate names them) | `tuipalette --check --spec layouts/rofi-like.ron` |
 | `crates/tuipalette-tui` | library stub that re-exports `ratatui` | `cargo build -p tuipalette-tui` |
 | `crates/tuipalette` | the picker: flags, fd handling, exit codes, timing switch | `scripts/pty-check.py ./target/debug/tuipalette …` |
 | host toolchain | rustc/cargo 1.95.0 | `cargo --version` |
 
 ## Next steps
-- [ ] 08 — finish the host story: run `scripts/tuipalette-floating.sh` for real and confirm class/size/position with `hyprctl clients -j`, then `--inline` in kitty with scrollback checked after exit
+- [ ] 08 — one check left: `--inline --height 8` inside a real kitty, scrollback and cursor column verified after exit (the floating half passes in `scripts/verify-floating.sh`)
 - [ ] 12 — cold-start probe: inner phases already measured (spec-parse 0.6 ms, terminal-init 1.3 ms, first frame 1.7 ms); needs the whole-path number with terminal spawn and the verdict written down
 - [ ] 13 — ship `layouts/rofi-like.ron` so there is a document to launch
 
