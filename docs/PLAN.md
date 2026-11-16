@@ -7,7 +7,7 @@ Last updated: 2026-11-16
 - Scope
 - Work
   - 01 — Feasibility spike: components, actions, layout from a spec · done 2026-11-16
-  - 02 — Workspace skeleton and repo hygiene
+  - 02 — Workspace skeleton and repo hygiene · done 2026-11-16
   - 03 — Spec schema in RON, layout resolution, theme tokens
   - 04 — Component trait, focus ring, action router, key maps
   - 05 — Built-in components and snapshot tests
@@ -59,7 +59,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - A ~350-line spike under `spike/` that loads a RON spec, renders three panes on resolved rects, dispatches `down`/`down`/`enter` through a `Component` trait, and prints the chosen value — checkable by `cd spike && cargo test` (headless `TestBackend` render asserts pane titles land inside their rects; the key sequence yields `run:herdr`; a malformed spec surfaces RON's line/column error, not a `None`).
 - detail: `docs/specs/01-spike.md`
 
-### 02 — Workspace skeleton and repo hygiene
+### 02 — Workspace skeleton and repo hygiene · done 2026-11-16
 - `git init` at the root, the nested `spike/.git` removed, `.gitignore` covering `target/`, the three crates under their settled names with the dependency edges the scope fixes — checkable by `cargo build --workspace && cargo test --workspace` from a clean clone-level state.
 - after: 01
 - detail: `docs/specs/02-workspace.md`
