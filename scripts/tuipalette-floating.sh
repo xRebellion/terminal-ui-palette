@@ -34,14 +34,17 @@ while [ $# -gt 0 ]; do
 done
 provider=("$@")
 
-binary=${TUIPALETTE_BIN:-tuipalette}
+# A compositor-spawned script inherits a minimal PATH and the binary is not
+# installed anywhere, so the default is the build next to this checkout. Checked
+# before anything else: without it the terminal opens, the shell inside fails
+# with 127 and the window disappears before anyone can read why.
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+repo=$(dirname "$here")
+binary=${TUIPALETTE_BIN:-$repo/target/release/tuipalette}
 terminal=${TUIPALETTE_TERMINAL:-kitty}
 
-# A compositor-spawned script inherits a minimal PATH; without this check the
-# terminal opens, the shell inside fails with 127 and the window disappears
-# before anyone sees why.
-if ! command -v "$binary" >/dev/null 2>&1; then
-  echo "tuipalette-floating: `$binary` is not on PATH — set TUIPALETTE_BIN to a built binary (target/release/tuipalette)" >&2
+if [ ! -x "$binary" ]; then
+  echo "tuipalette-floating: no picker at $binary — run 'cargo build --release' or set TUIPALETTE_BIN" >&2
   exit 2
 fi
 class=$("$binary" --spec "$layout" --print-class)

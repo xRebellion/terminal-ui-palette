@@ -53,14 +53,30 @@ $ tuipalette ... --prompt 'herdr session' --message 'Enter attaches'
 
 The first pair is the discriminator: with ranking, `abc` wins; with `--no-sort`, the row the caller put first does.
 
-## Not verified
+## What broke first, and what it taught
 
-The real window path: the Hyprland rules are not installed right now (docs/specs/08-hosts.md), so launching the adapter would tile a window on the active workspace rather than float it. The adapter's argument handling was instead checked with `TUIPALETTE_DRY_RUN=1`, which prints the command it would run:
+The first real run did nothing at all: no window, and the script exited 0 as if the user had cancelled. Two mistakes stacked:
+
+1. The adapter resolved the picker as `tuipalette` on PATH. A compositor-spawned script gets a minimal PATH and the binary is not installed anywhere — it lives in `target/release`. The adapter's own guard fired after the first `--print-class` call, so the error it meant to print was preceded by a raw `command not found`, and its message contained an empty word because it used backticks where it meant quotes.
+2. Because `dmenu()` returns the adapter's status and every caller is written `|| exit 0`, a broken picker is indistinguishable from a cancelled one. That is the right behaviour for the script and the wrong behaviour for debugging it.
+
+The adapter now defaults to the build beside its own checkout (`$(dirname $BASH_SOURCE)/../target/release/tuipalette`) and refuses with a readable line when that is missing too. The lesson for item 14: a picker that fails to start must be loud, or every call site silently becomes a no-op.
+
+## Verified again, for real
+
+With the fix, the live script launched from the host opens the window and returns:
 
 ```
-kitty --class tuipalette ... sh -c cat /tmp/items.txt | tuipalette --spec layouts/dmenu.ron \
-  --out-file /tmp/tuipalette-result.XXXX --prompt herdr\ session --message Enter\ attaches \
-  --no-sort --accept-query
+╭─ herdr session ─────────────────────────────────────────────────────────╮
+│▏                                                                        │
+╰─────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────────────────────────────────────────────────╮
+│› default                running                                         │
+│  mypd                   stopped                                         │
+│  + new session                                                          │
+│  - delete a session                                                     │
+╰─────────────────────────────────────────────────────────────────────────╯
+Enter attaches, + creates, - deletes
 ```
 
-Binding it and pressing SUPER+SHIFT+Return is the last step, and it needs the floating rule back first.
+Prompt, hint line, the caller's row order and the marker all arrived; escape closed it and the script reported `rc=0`. The window **tiles**, because the Hyprland rules are not installed right now — that is expected, not a defect.
