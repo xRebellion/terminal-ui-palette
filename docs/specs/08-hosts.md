@@ -63,9 +63,56 @@ result: ok
 
 ## Inline
 
-`--inline --height N` draws with `Viewport::Inline(N)`: no `\e[?1049h` in the output, the terminal's own cursor is hidden and restored, and the picker occupies the bottom N lines. Verified in a pty (`scripts/pty-check.py`, no alt-screen escape, value `beta`); **not yet verified inside a real kitty**, where the scrollback and the cursor's column after exit are the things worth looking at.
+`--inline --height N` draws with `Viewport::Inline(N)`: no `\e[?1049h` in the output, the terminal's own cursor is hidden while drawing, and the picker occupies the bottom N lines.
+
+### The bug the kitty run found
+
+The first real run left the frame on screen with the shell's next line printed on top of it:
+
+```
+BEFORE-LINE
+╭─ select ───────────────────────────────────────────────────────────╮
+│b▏beta                                                              │
+AFTER-LINE rc=0──────────────────────────────────────────────────────╯
+MARK>hey─────────────────────────────────────────────────────────────╮
+GOT[hey]─────────────────────────────────────────────────────────────╯
+enter choose  esc cancel
+```
+
+Ratatui's inline viewport leaves its rows drawn and hands the cursor back at their **first** cell, so everything the shell printed afterwards overwrote the top of the frame while the bottom of it survived. Ratatui's own `Terminal::clear` is not enough on its own: it restores the cursor to where it found it, which is the end of the last drawn row.
+
+The fix is the inline teardown in `crates/tuipalette-tui/src/run.rs`:
+
+```rust
+// An inline picker owns the bottom N lines, and ratatui leaves them
+// drawn with the cursor back at their first cell — so the shell's next
+// line lands on top of a half-erased frame. Wipe the region and park
+// the cursor where the next line of output belongs.
+let height = options.inline.unwrap_or_default();
+let top = crossterm::terminal::size()
+    .map(|(_, rows)| rows.saturating_sub(height))
+    .unwrap_or_default();
+terminal.clear().ok();
+terminal.backend_mut().execute(cursor::MoveTo(0, top)).ok();
+```
+
+The viewport is the bottom of the terminal, so its first row is `rows - height`; no query of ratatui's own area is needed (it keeps that field private).
+
+### The same run after the fix
+
+```
+BEFORE-LINE
+(blank ×5)
+beta
+AFTER-LINE rc=0
+MARK>hey
+GOT[hey]
+```
+
+The region is blank, the cursor sits at its first cell (typing `hey` after `MARK>` landed at column 8 on the right line), the accepted value still reaches stdout — that is `beta` on its own line — and `kitten @ get-text --extent=all | grep -c 'select\|enter choose'` returns `0`, so no frame character survives in the scrollback either. An inline picker leaves no trace, which is what a modal should do.
+
+The rows are blanked rather than collapsed: a terminal cannot remove lines above the cursor without a scroll trick, and fzf-style inline tools leave the same blank band.
 
 ## Not in this item
 
-- Inline inside kitty, with scrollback and cursor checked manually afterwards.
 - The side-by-side rofi swap: `scripts/dmenu.sh` and `scripts/launch-apps.sh` each have one `PICKER=` line, but nobody has yet run both pickers from the same keybind and compared (that is item 13's checkable).

@@ -67,6 +67,17 @@ pub fn run(picker: &mut Picker, source: Receiver<Item>, options: &Options) -> io
     terminal.show_cursor().ok();
     if fullscreen {
         terminal.backend_mut().execute(LeaveAlternateScreen).ok();
+    } else {
+        // An inline picker owns the bottom N lines, and ratatui leaves them
+        // drawn with the cursor back at their first cell — so the shell's next
+        // line lands on top of a half-erased frame. Wipe the region and park
+        // the cursor where the next line of output belongs.
+        let height = options.inline.unwrap_or_default();
+        let top = crossterm::terminal::size()
+            .map(|(_, rows)| rows.saturating_sub(height))
+            .unwrap_or_default();
+        terminal.clear().ok();
+        terminal.backend_mut().execute(cursor::MoveTo(0, top)).ok();
     }
     disable_raw_mode().ok();
     Ok(outcome)

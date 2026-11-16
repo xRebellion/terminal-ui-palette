@@ -13,7 +13,7 @@ Last updated: 2026-11-16
   - 05 — Built-in components and snapshot tests · done 2026-11-16
   - 06 — Streaming source, matcher, match highlighting · done 2026-11-16
   - 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes · done 2026-11-16
-  - 08 — Host adapters: floating window and inline
+  - 08 — Host adapters: floating window and inline · done 2026-11-16
   - 12 — Cold-start probe: is 100 ms reachable at all?
   - 09 — Latency verdict and the daemon decision
   - 10 — Migrate one real picker end to end
@@ -89,7 +89,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 05, 06
 - detail: `docs/specs/07-cli-contract.md`
 
-### 08 — Host adapters: floating window and inline
+### 08 — Host adapters: floating window and inline · done 2026-11-16
 - Two adapters and nothing else, both driven by the same `host` section of the spec (width, height, position, with inline defaulting to the whole terminal). Floating: `scripts/tuipalette-floating.sh` launches the picker in a terminal that names its own window class, applies the spec's geometry, and relies on the documented Hyprland rule for float, size and position on a keybind. Inline: `--inline` renders in the terminal it was invoked from, taking the whole terminal when no height knob is set and the last N lines otherwise, leaving scrollback intact and restoring the cursor and scroll region on exit. Selection is automatic — stdout a tty with no floating adapter means inline — and `2` when neither host is usable — checkable by `hyprctl clients -j` showing the floating window's class, size and position matching the spec, and by `tuipalette --inline` inside kitty with scrollback and cursor verified after exit.
 - after: 07
 - detail: `docs/specs/08-hosts.md` (floating verified; the inline-in-kitty half is outstanding)
