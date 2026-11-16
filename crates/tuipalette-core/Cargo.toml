@@ -1,0 +1,12 @@
+[package]
+name = "tuipalette-core"
+description = "Spec, layout resolution and the component model for tuipalette pickers. No terminal I/O."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ratatui-core.workspace = true
+ron.workspace = true
+serde.workspace = true

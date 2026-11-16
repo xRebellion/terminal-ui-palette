@@ -1,0 +1,11 @@
+[package]
+name = "tuipalette-tui"
+description = "ratatui/crossterm backend for tuipalette: the only crate that knows a terminal exists."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ratatui.workspace = true
+tuipalette-core.workspace = true

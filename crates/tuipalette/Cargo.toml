@@ -1,0 +1,15 @@
+[package]
+name = "tuipalette"
+description = "Pickers for any terminal: a rofi-shaped job done by a general spec."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "tuipalette"
+path = "src/main.rs"
+
+[dependencies]
+tuipalette-core.workspace = true
+tuipalette-tui.workspace = true
