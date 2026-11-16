@@ -11,11 +11,6 @@ is how the 60 000-line find run was made.
 
 It answers the cursor-position query ratatui makes for an inline viewport,
 because a pty made by forkpty has no terminal emulator behind it to reply.
-"""A pty harness for the picker: items on a pipe, keys from a real terminal,
-value on a pipe. This is the shape dmenu callers use, so it is the shape the
-acceptance test drives.
-
-usage: pty07.py <binary> <spec> <keys-literal> <items> [flags...]
 """
 import os, struct, sys, time, fcntl, termios, select
 
