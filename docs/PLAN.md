@@ -10,7 +10,7 @@ Last updated: 2026-11-16
   - 02 — Workspace skeleton and repo hygiene · done 2026-11-16
   - 03 — Spec schema in RON, layout resolution, theme tokens · done 2026-11-16
   - 04 — Component trait, focus ring, action router, key maps · done 2026-11-16
-  - 05 — Built-in components and snapshot tests
+  - 05 — Built-in components and snapshot tests · done 2026-11-16
   - 06 — Streaming source, matcher, match highlighting
   - 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes
   - 08 — Host adapters: floating window and inline
@@ -74,8 +74,8 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 02, 03
 - detail: `docs/specs/04-component-dispatch.md`
 
-### 05 — Built-in components and snapshot tests
-- `InputLine` (cursor, backspace), `Menu` (selection clamp, scroll window, item template with leading icon slot), `TextPane`, status line, spacer — rendered through `insta` snapshots against `TestBackend`, so a visual regression fails a test instead of needing eyes.
+### 05 — Built-in components and snapshot tests · done 2026-11-16
+- `InputLine` (cursor, backspace), `Menu` (selection clamp, scroll window, item template with leading icon slot), `TextPane`, status line, spacer — rendered through `insta` snapshots against `TestBackend`, so a visual regression fails a test instead of needing eyes — checkable by `cargo test -p tuipalette-core --test components` → `14 passed`, with snapshots for all five kinds and the launcher end to end.
 - after: 04
 - detail: `docs/specs/05-components.md`
 

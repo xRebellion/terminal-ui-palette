@@ -1,0 +1,5 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "screen(&s, 40, 1)"
+---
+enter run  tab next  esc quit

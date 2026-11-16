@@ -1,0 +1,7 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "screen(&s, 30, 3)"
+---
+╭─ search ───────────────────╮
+│firefox▏                    │
+╰────────────────────────────╯

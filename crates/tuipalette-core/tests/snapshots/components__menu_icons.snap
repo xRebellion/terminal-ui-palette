@@ -1,0 +1,10 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "painted(&menu, 28, 6, true)"
+---
+╭─ apps ───────────────────╮
+│ff  › firefox             │
+│      kitty               │
+│>_    code                │
+│                          │
+╰──────────────────────────╯

@@ -7,12 +7,14 @@
 
 pub mod action;
 pub mod component;
+pub mod components;
 pub mod error;
 pub mod key;
 pub mod keymap;
 pub mod layout;
 pub mod session;
 pub mod spec;
+pub mod ui;
 
 // The ratatui-core types allowed across this boundary — geometry, a cell grid,
 // and styling. Re-inventing them would buy nothing; the `ratatui` facade and
@@ -23,6 +25,7 @@ pub use ratatui_core::style::{Color, Modifier, Style};
 
 pub use action::Action;
 pub use component::{Component, Paint, Reaction};
+pub use components::{from_pane, InputLine, Item, Menu, Spacer, StatusLine, TextPane};
 pub use error::SpecError;
 pub use key::{Key, KeyCode, Mods, Phase};
 pub use keymap::Keymap;

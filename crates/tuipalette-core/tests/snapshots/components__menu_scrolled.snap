@@ -1,0 +1,10 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "screen(&s, 24, 6)"
+---
+╭─ apps ───────────────╮
+│  three               │
+│  four                │
+│  five                │
+│› six                 │
+╰──────────────────────╯

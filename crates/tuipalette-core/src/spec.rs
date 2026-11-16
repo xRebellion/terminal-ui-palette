@@ -109,6 +109,7 @@ impl UiSpec {
             ("accent", &self.theme.accent),
             ("selected_bg", &self.theme.selected_bg),
             ("text", &self.theme.text),
+            ("dim", &self.theme.dim),
         ] {
             if parse_color(value).is_none() {
                 return Err(SpecError::at_path(
@@ -166,6 +167,13 @@ pub struct Theme {
     pub selected_bg: String,
     #[serde(rename = "text")]
     pub text: String,
+    /// Borders that do not have focus, and hints.
+    #[serde(rename = "dim", default = "default_dim")]
+    pub dim: String,
+}
+
+fn default_dim() -> String {
+    "#6c7086".to_owned()
 }
 
 impl Default for Theme {
@@ -174,6 +182,7 @@ impl Default for Theme {
             accent: "#89b4fa".to_owned(),
             selected_bg: "#313244".to_owned(),
             text: "#cdd6f4".to_owned(),
+            dim: default_dim(),
         }
     }
 }
@@ -184,6 +193,9 @@ impl Theme {
     }
     pub fn selected_color(&self) -> Color {
         parse_color(&self.selected_bg).unwrap_or(Color::Reset)
+    }
+    pub fn dim_color(&self) -> Color {
+        parse_color(&self.dim).unwrap_or(Color::Reset)
     }
     pub fn text_color(&self) -> Color {
         parse_color(&self.text).unwrap_or(Color::Reset)
@@ -227,6 +239,12 @@ pub enum Kind {
     Input,
     #[serde(rename = "Menu")]
     Menu,
+    /// A single row of hints, no frame.
+    #[serde(rename = "Status")]
+    Status,
+    /// Draws nothing; holds its cells so a layout can push panes apart.
+    #[serde(rename = "Spacer")]
+    Spacer,
 }
 
 /// One node of the layout tree: either a leaf that names a pane, or a split

@@ -2,6 +2,8 @@
 
 Detail for item 03 of `docs/PLAN.md`. This is the contract item 11 documents.
 
+> Later items extended this surface: 05 added a fourth theme token (`dim`) and two pane kinds (`Status`, `Spacer`). See `specs/05-components.md`.
+
 ## Wire shape
 
 ```ron

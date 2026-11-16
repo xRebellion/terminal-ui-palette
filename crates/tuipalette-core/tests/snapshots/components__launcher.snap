@@ -1,0 +1,18 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "screen(&s, 60, 14)"
+---
+╭─ search ─────────────────────────────────────────────────╮
+│fir▏                                                      │
+╰──────────────────────────────────────────────────────────╯
+╭─ applications ───────────────────╮╭─ preview ────────────╮
+│  firefox                         ││firefox               │
+│  kitty                           ││internet browser      │
+│  code                            ││130 MB                │
+│› herdr                           ││                      │
+│  spotify                         ││                      │
+│  discord                         ││                      │
+│  slack                           ││                      │
+│  telegram                        ││                      │
+╰──────────────────────────────────╯╰──────────────────────╯
+enter run  tab next  esc quit

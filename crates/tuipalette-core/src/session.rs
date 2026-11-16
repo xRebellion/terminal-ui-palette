@@ -77,6 +77,16 @@ impl Session {
         })
     }
 
+    /// Build every pane's built-in component from its `kind`.
+    pub fn from_spec(spec: UiSpec) -> Result<Self, SpecError> {
+        let components: Vec<Box<dyn Component>> = spec
+            .panes
+            .iter()
+            .map(crate::components::from_pane)
+            .collect();
+        Self::new(spec, components)
+    }
+
     pub fn spec(&self) -> &UiSpec {
         &self.spec
     }

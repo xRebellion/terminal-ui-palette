@@ -1,0 +1,7 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "screen(&s, 20, 3)"
+---
+╭─ search ─────────╮
+│y-that-cannot-fit▏│
+╰──────────────────╯
