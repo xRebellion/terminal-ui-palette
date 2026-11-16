@@ -112,7 +112,7 @@ impl Picker {
                         self.refilter();
                         return Outcome::Continue;
                     }
-                    crate::key::KeyCode::Backspace => {
+                    crate::key::KeyCode::Backspace | crate::key::KeyCode::Delete => {
                         self.query.pop();
                         self.refilter();
                         return Outcome::Continue;

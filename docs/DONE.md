@@ -2,6 +2,7 @@
 Last updated: 2026-11-16
 
 ## Completed
+- 2026-11-16 — Delete now reaches the query: `Action::Delete` (wire name `Delete`), decoded from `KeyCode::Delete`, handled by `InputLine` and by the picker's no-query-pane path — closes item 07's deferred gap · `cargo test --workspace` → `81 passed`
 - 2026-11-16 — Item 11, the spec reference: `docs/spec-reference.md` covering every field and default, the size grammar, the key-map merge, the item protocol, the flags, the exit codes and the `Component` trait — proved by writing a new picker from it alone: `layouts/wifi.ron` + `scripts/wifi.sh` → `--check` `ok — 3 panes, 2 bindings`, `50x12`, typed `cafe` + enter → `cafe`, esc → 130 · spec: `specs/11-docs.md`
 - 2026-11-16 — Item 15, icon slots: width per grapheme cluster (`unicode-segmentation` + `unicode-width`), a theme `icon_placeholder` for absent and too-wide glyphs, no slot when the pane declares none — snapshot matrix of native glyph / double-width emoji / absent / `--no-icons` keeping the text column fixed, plus a too-wide fallback test: `cargo test -p tuipalette-core --test components` → `16 passed` · spec: `specs/15-icons.md`
 - 2026-11-16 — Item 12, cold-start probe: one env-gated switch (`TUIPALETTE_TIMING=1`), three runs on the release build — spec-parse 0.1 ms, terminal-init 0.5–0.8 ms, first frame 0.7–1.0 ms, **under 2 ms total**, against terminal spawn of 217–495 ms — verdict: the 100 ms budget survives with ~60× headroom, and a daemon has nothing to save · spec: `specs/12-cold-start.md`

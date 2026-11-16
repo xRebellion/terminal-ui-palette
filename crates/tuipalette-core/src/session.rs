@@ -139,8 +139,7 @@ impl Session {
         match key.code {
             KeyCode::Char(c) if !key.mods.ctrl && !key.mods.alt => self.dispatch(Action::Input(c)),
             KeyCode::Backspace => self.dispatch(Action::Backspace),
-            // Delete needs a cursor to act on; until the query has one it is
-            // not an action the library has.
+            KeyCode::Delete => self.dispatch(Action::Delete),
             _ => Outcome::Continue,
         }
     }

@@ -133,6 +133,10 @@ fn the_picker_narrows_as_the_query_is_typed() {
 
     picker.on_key(Key::new(KeyCode::Backspace, Mods::NONE));
     assert_eq!(picker.rows().len(), 2, "\"fi\" still matches both");
+    // Delete lands on the same path as backspace.
+    picker.on_key(Key::new(KeyCode::Delete, Mods::NONE));
+    assert_eq!(picker.query(), "f", "delete trims the query too");
+    picker.on_key(Key::new(KeyCode::Char('i'), Mods::NONE));
     picker.on_key(Key::new(KeyCode::Backspace, Mods::NONE));
     picker.on_key(Key::new(KeyCode::Backspace, Mods::NONE));
     assert_eq!(picker.rows().len(), 4, "and an empty query restores everything");

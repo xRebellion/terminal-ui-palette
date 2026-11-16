@@ -2,7 +2,7 @@
 Last updated: 2026-11-16
 
 ## What works
-- Eleven items landed, the workspace builds and its suites pass — `cargo test --workspace` → `80 passed, 0 failed`
+- Eleven items landed, the workspace builds and its suites pass — `cargo test --workspace` → `81 passed, 0 failed`
 - A RON or JSON document parses, validates, resolves to pane rects and deserializes its key map — `cargo test -p tuipalette-core --test spec` → `16 passed`
 - Focus, bubbling, emit and key-map override/unset work headless — `cargo test -p tuipalette-core --test dispatch` → `14 passed`
 - The built-ins draw from their pane kind, pinned by snapshots, with icon slots whose four fill states keep the text column fixed — `cargo test -p tuipalette-core --test components` → `16 passed`

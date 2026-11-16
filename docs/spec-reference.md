@@ -122,6 +122,7 @@ keys: {
 | `Accept` | take the focused pane's value, exit 0 |
 | `Up` / `Down` | move the menu selection |
 | `Backspace` | drop the last character of the query |
+| `Delete` | same for now: the query has no cursor to move, so it trims the end |
 | `FocusNext` / `FocusPrev` | next/previous pane in draw order |
 
 `Input(char)` and `Invoke(value)` exist at runtime only; a document cannot name them.

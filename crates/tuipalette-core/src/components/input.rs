@@ -55,7 +55,7 @@ impl Component for InputLine {
                 self.value.push(*c);
                 Reaction::Handled
             }
-            Action::Backspace => {
+            Action::Backspace | Action::Delete => {
                 if self.value.pop().is_some() {
                     Reaction::Handled
                 } else {

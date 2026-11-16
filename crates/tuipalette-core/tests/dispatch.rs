@@ -6,6 +6,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use tuipalette_core::components::InputLine;
 use tuipalette_core::key;
 use tuipalette_core::spec::Format;
 use tuipalette_core::{
@@ -413,4 +414,21 @@ fn two_components_cannot_claim_one_pane() {
         Err(e) => e.to_string(),
     };
     assert!(err.contains("two components claim pane"), "{err}");
+}
+
+#[test]
+fn delete_reaches_the_query_like_backspace() {
+    // The query has no cursor movement yet, so Delete drops the last
+    // character; the point is that the key is decoded, routed and answered
+    // instead of vanishing.
+    let spec = spec(
+        r#"(window: (title: "t"), layout: (pane: "q"), panes: [(id: "q", kind: Input, title: "q")])"#,
+    );
+    let mut session = Session::from_spec(spec).expect("the document is valid");
+    session.dispatch(Action::Input('a'));
+    session.dispatch(Action::Input('b'));
+    let outcome = session.on_key(Key::new(KeyCode::Delete, Mods::NONE));
+    assert_eq!(outcome, Outcome::Continue);
+    let query = session.pane::<InputLine>("q").and_then(|input| input.value());
+    assert_eq!(query, Some("a".to_owned()));
 }

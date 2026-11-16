@@ -24,6 +24,10 @@ pub enum Action {
     Accept,
     #[serde(rename = "Backspace")]
     Backspace,
+    /// Delete the character ahead of the cursor. The query has no cursor
+    /// movement yet, so today this drops the last character, like backspace.
+    #[serde(rename = "Delete")]
+    Delete,
     /// A typed character. Runtime only.
     #[serde(skip)]
     Input(char),
