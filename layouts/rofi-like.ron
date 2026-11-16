@@ -24,7 +24,7 @@
     panes: [
         (id: "query", kind: Input, title: "run"),
         (id: "results", kind: Menu, title: "applications"),
-        (id: "status", kind: Status, items: ["enter run", "esc cancel", "type to filter"]),
+        (id: "status", kind: Status, items: ["enter run", "↑↓ move", "tab focus", "esc cancel", "type filters"]),
     ],
     keys: {
         "esc": Some(Quit),

@@ -21,7 +21,7 @@
     panes: [
         (id: "query", kind: Input, title: "network"),
         (id: "results", kind: Menu, title: "available"),
-        (id: "status", kind: Status, items: ["enter connect", "esc cancel"]),
+        (id: "status", kind: Status, items: ["enter connect", "↑↓ move", "esc cancel"]),
     ],
     keys: {
         "esc": Some(Quit),

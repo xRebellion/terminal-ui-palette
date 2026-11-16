@@ -15,9 +15,9 @@ Last updated: 2026-11-16
   - 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes · done 2026-11-16
   - 08 — Host adapters: floating window and inline · done 2026-11-16
   - 12 — Cold-start probe: is 100 ms reachable at all? · done 2026-11-16
-  - 09 — Latency verdict and the daemon decision
+  - 09 — Latency verdict and the daemon decision · done 2026-11-16
   - 10 — Migrate one real picker end to end
-  - 13 — Ship a rofi-like layout
+  - 13 — Ship a rofi-like layout · done 2026-11-16
   - 14 — Rofi parity inventory and empirical check
   - 15 — Icon slots and their fallback · done 2026-11-16
   - 11 — Spec reference and component guide · done 2026-11-16
@@ -99,7 +99,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 02
 - detail: `docs/specs/12-cold-start.md`
 
-### 09 — Latency verdict and the daemon decision
+### 09 — Latency verdict and the daemon decision · done 2026-11-16
 - Two comparisons on the finished binary: ours (exec to first paint, then key to repaint) against the 100 ms budget, and the whole path (terminal spawn included) against `rofi -dmenu` on the same keybind — comparing our inner number to rofi's whole path would flatter us, so both tables exist — plus a written verdict on D2's one-process-per-invocation model, the resident daemon recorded as an explicit non-answer unless the numbers force it, and a missed budget defaulting to "accept and record" — checkable by both tables and the verdict in the item's spec, any exception to D2 recorded as a new decision.
 - after: 08, 12
 - detail: `docs/specs/09-latency.md`
@@ -109,7 +109,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 08
 - detail: `docs/specs/10-migration.md`
 
-### 13 — Ship a rofi-like layout
+### 13 — Ship a rofi-like layout · done 2026-11-16
 - `layouts/rofi-like.ron` reproducing the look and behaviour of the user's current rofi setup (`~/.config/rofi/config.rasi`: `modi run,drun`, fzf sorting; `themes/monokai.rasi` for the colours), plus the provider scripts it needs — app listing and `.desktop` parsing among them, since provider logic is not the library's job — and the two entry points (app launch, dmenu), with no rofi concept entering the crates — checkable by launching it side by side with `rofi` on the same keybind and swapping them with a one-line change in the adapter.
 - after: 07
 - detail: `docs/specs/13-rofi-like-layout.md`

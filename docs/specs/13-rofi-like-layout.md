@@ -27,19 +27,35 @@ No crate contains the string `rofi` except this documentation: the layout is rea
 
 Both entry points read the **same** provider: `launch-apps.sh` pipes `scripts/apps.sh` into whichever picker the one `PICKER=` line names, so the entries are identical by construction rather than by comparison.
 
-## What is not verified, and why
+## The side-by-side
 
-The item's original checkable — *side by side with `rofi` on the same keybind* — could not be run without putting rofi on the user's screen, because of how rofi draws on this stack:
-
-- `hyprctl layers -j` shows `rofi` as a **Wayland layer surface** (namespace `rofi`), not a toplevel — with or without `-normal-window`.
-- Layer surfaces never appear in `hyprctl clients -j`, so no window rule can park this one on a special workspace, and `grim -T` has no window buffer to capture.
-- It maps on the active workspace and takes the keyboard; there is no flag that makes it invisible without also making it useless.
-
-So the comparison is a one-minute manual step, done when convenient:
+It was run on the user's screen, both halves on the same keybind with one line changed:
 
 ```
-PICKER=rofi          scripts/launch-apps.sh
-PICKER=tuipalette    scripts/launch-apps.sh
+PICKER=rofi       scripts/launch-apps.sh
+PICKER=tuipalette scripts/launch-apps.sh
 ```
 
-Same key, same entries, one line apart. The tunables that could still differ are the exact pixel geometry (our card is 60x14 cells; rofi's is whatever `config.rasi` says), the sorting (`fzf` in rofi, nucleo here) and the row height. Those are the things to look at on that run, and they are recorded as open in `docs/STATUS.md` rather than claimed here.
+The verdict was "everything looks good" with one difference: **the hint bar said nothing about navigation**. Rofi's does, ours listed only `enter`, `esc` and `type to filter`.
+
+That is the right kind of finding for this item: the fix was one line of data, no recompile, no code change —
+
+```ron
+(id: "status", kind: Status, items: ["enter run", "↑↓ move", "tab focus", "esc cancel", "type filters"]),
+```
+
+— and it landed in all three shipped layouts (`dmenu.ron`, `wifi.ron` included), each still `--check` clean. The hints are 56 cells in a 58-cell inner width, so nothing clips at 60×14, and navigation now sits second, where the eye lands, instead of last where a narrow document would cut it first.
+
+## First attempt, kept because it failed
+
+The first launch printed `tuipalette: exit 127` and no window: a compositor-spawned script inherits a minimal PATH, and the adapter looked for a binary named `tuipalette` that only exists in `target/release`. The adapter now checks for it and says so —
+
+```
+tuipalette-floating: `tuipalette` is not on PATH — set TUIPALETTE_BIN to a built binary (target/release/tuipalette)
+```
+
+— instead of opening a terminal that dies inside itself.
+
+## What is still not compared
+
+Only the eyes' judgements, and they were made: size, position, density, sort order, prompt and hints. The timing comparison (ours ~120 ms to appear, rofi ~43 ms) belongs to `docs/specs/09-latency.md` and is recorded there.

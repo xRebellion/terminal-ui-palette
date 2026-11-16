@@ -21,7 +21,7 @@
     panes: [
         (id: "query", kind: Input, title: "select"),
         (id: "list", kind: Menu),
-        (id: "status", kind: Status, items: ["enter choose", "esc cancel"]),
+        (id: "status", kind: Status, items: ["enter choose", "↑↓ move", "esc cancel"]),
     ],
     keys: {
         "esc": Some(Quit),

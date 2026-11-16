@@ -27,6 +27,14 @@ provider=("$@")
 
 binary=${TUIPALETTE_BIN:-tuipalette}
 terminal=${TUIPALETTE_TERMINAL:-kitty}
+
+# A compositor-spawned script inherits a minimal PATH; without this check the
+# terminal opens, the shell inside fails with 127 and the window disappears
+# before anyone sees why.
+if ! command -v "$binary" >/dev/null 2>&1; then
+  echo "tuipalette-floating: `$binary` is not on PATH — set TUIPALETTE_BIN to a built binary (target/release/tuipalette)" >&2
+  exit 2
+fi
 class=$("$binary" --spec "$layout" --print-class)
 
 geometry=$("$binary" --spec "$layout" --print-geometry || true)
