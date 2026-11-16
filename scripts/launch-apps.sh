@@ -9,9 +9,11 @@ PICKER=${PICKER:-tuipalette}
 if [ "$PICKER" = rofi ]; then
   choice=$(rofi -show drun -dmenu -i)
 else
-  choice=$(scripts/tuipalette-floating.sh layouts/rofi-like.ron scripts/apps.sh)
+  choice=$(scripts/apps.sh | scripts/usage.sh order 2 \
+    | scripts/tuipalette-floating.sh layouts/rofi-like.ron cat -)
 fi
 
 [ -n "$choice" ] || exit 0
+scripts/usage.sh record "$choice"
 # Detached: the launcher exits, the app keeps running.
 setsid sh -c "$choice" >/dev/null 2>&1 &

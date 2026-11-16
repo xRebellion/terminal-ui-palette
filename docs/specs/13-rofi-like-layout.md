@@ -59,3 +59,22 @@ tuipalette-floating: `tuipalette` is not on PATH — set TUIPALETTE_BIN to a bui
 ## What is still not compared
 
 Only the eyes' judgements, and they were made: size, position, density, sort order, prompt and hints. The timing comparison (ours ~120 ms to appear, rofi ~43 ms) belongs to `docs/specs/09-latency.md` and is recorded there.
+
+## Providers: speed and usage memory (2026-11-16, after item 14)
+
+Two complaints from using the migrated binds: the app list took a second to appear, and both lists were plain alphabetical with no memory of what gets used.
+
+**Speed.** `scripts/apps.sh` forked four subprocesses per `.desktop` file (283 files → ~1.3 s for 106 rows). It is now one `awk` pass over the files array: **20 ms**, byte-identical output (`diff` empty). The picker opens immediately because the first rows arrive immediately.
+
+**Usage memory.** `scripts/usage.sh` keeps `~/.cache/tuipalette/usage.tsv` as `key<TAB>count<TAB>last	time`, and offers two subcommands: `order <key-field>` (reorders stdin rows: most recently used first, then most used, then arrival order) and `record <key>` (bump after an accept). Both providers use it:
+
+```
+scripts/apps.sh   | usage.sh order 2 | tuipalette-floating.sh layouts/rofi-like.ron cat -
+run-command.sh    | commands | usage.sh order 1 | tuipalette-floating.sh layouts/dmenu.ron … cat -
+```
+
+Field 2 for apps is the exec line (what the picker returns, so it is the natural key); field 1 for commands is the command itself.
+
+This works because the picker sorts by match score and keeps **arrival order for ties**: with an empty query every row scores 0, so the list appears exactly as the provider ordered it. As soon as the user types, match score takes over — which is the right priority, and the reason an in-library frecency tie-break is still worth having (item 18).
+
+Verified live: accept `zsh` in the run picker → the next open shows `zsh` above `[`; accept `alacritty` in the app picker → `usage.tsv` gains `alacritty	1	<now>` and the app launches.

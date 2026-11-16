@@ -148,6 +148,13 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 16 — conditional actions are where `-e`, `-auto-select` and the `+`/`-` rows land
 - detail: `docs/specs/17-revisit.md`
 
+### 18 — Ranking: substring before subsequence, and frecency as a tie-break
+- Observed while using the migrated binds: typing `kni` in the app picker lists `KDE Connect Indicator` above `Arknights`, which contains the query as a literal substring. fzf ranks them the same way, so this is the algorithm rather than a defect in our use of nucleo — but it is not what a launcher should do.
+- Proposal: (a) a literal substring hit outranks any scattered subsequence hit; (b) ties break by shorter display, then arrival order; (c) usage from `scripts/usage.sh` becomes a documented tie-break, so it also orders *filtered* results and not just the empty query.
+- checkable: a before/after table for the queries `kni`, `fire`, `code` (top five rows each), a test pinning each row's order, and `scripts/usage.sh` still working unchanged.
+- after: 17 — the revisit decides what stays in the providers
+- detail: `docs/specs/18-ranking.md`
+
 ## Decisions
 Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the digest of what still binds outstanding work.
 - D1 — Render stack: ratatui 0.30 + crossterm, confined to `tuipalette-tui`; components render into `&mut Buffer` and never touch `Frame`, so they stay testable headless and backend-agnostic (binds all)

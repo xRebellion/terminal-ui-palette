@@ -14,6 +14,7 @@ Last updated: 2026-11-16
 - `herdr-sessions.sh` runs on the picker — the live script opens with its prompt, hint line and caller order, and escape returns `rc=0`; attach, new+typed name, delete+confirm, cancel and decline also driven through a fake picker and stubs; the three rofi-shaped flags checked in a pty
 - The three rofi *modes* have equivalents, verified: `run` (`scripts/run-command.sh`, 4669 candidates, free text accepted), `drun` (`scripts/launch-apps.sh`) and `window` (`scripts/switch-window.sh`, address returned); `calc` and `-password` are benched with reasons in `docs/specs/14-parity.md`
 - All four rofi keybinds are rewired: `SUPER+R` → `scripts/run-command.sh`, `SUPER+Space` → `scripts/launch-apps.sh`, `SUPER+Shift+,` → `scripts/switch-window.sh`; `XF86Calculator` stays on rofi (benched)
+- The app list opens in 20 ms (was 1276 ms) and both launchers remember what was used (`scripts/usage.sh`)
 - The floating host survives a real keybind: focused window, typed query, Escape closes it with no dead window (four bugs fixed — `docs/specs/08-hosts.md`)
 - The picker matches rofi on the same keybind — same card, same entries, compared on screen; whole path 117–132 ms against rofi's 42–45 ms, the delta being the terminal's spawn
 - The timing switch reports its phases, and the whole cold path fits the budget — `TUIPALETTE_TIMING=1` → `spec-parse 0.1ms, terminal-init 0.5–0.8ms, first-frame 0.7–1.0ms` (**under 2 ms**, terminal spawn 217–495 ms measured separately)
