@@ -48,6 +48,15 @@ The row is `title\taddress`, so the picker hands back the address alone while th
 
 **5. wifi** — `tuipalette --check --spec layouts/wifi.ron` → `ok — 3 panes, 2 bindings`, and the fake-list run from item 11: typing `cafe` + Enter → `cafe`; `-auto-select` needs nothing because the first row starts selected.
 
-## What is not done
+## The binds, switched (2026-11-16)
 
-The four binds still point at rofi: `MENU = "rofi -show"` in `~/.config/hypr/hyprland.lua` and four `hl.bind` lines in `conf/binds.lua`. Migrating them is one line each and a reload — deliberately left to the user, since it changes what four of their keys do.
+All four binds are rewired. `hyprland.lua` gained `TUIPALETTE = "~/Code/hobby/terminal-ui-lib/scripts"` and the three migrated keybinds point at it; `MENU` stays only for `-show calc`.
+
+| bind | old | new |
+|---|---|---|
+| `SUPER+R` | `rofi -show run` | `scripts/run-command.sh` |
+| `SUPER+Space` | `rofi -show drun` | `scripts/launch-apps.sh` |
+| `SUPER+Shift+,` | `rofi -show window` | `scripts/switch-window.sh` |
+| `XF86Calculator` | `rofi -show calc` | unchanged (benched, row 4) |
+
+Verified by pressing the real keys and typing through the window's input path: each opened a focused floating window at 60×12 cells, the typed text appeared in the query, and Escape closed the window with none left behind. The verification also found four host bugs — recorded in `specs/08-hosts.md`, all fixed.

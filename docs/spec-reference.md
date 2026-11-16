@@ -171,7 +171,7 @@ Exit codes: `0` accepted, `130` cancelled, `1` the document is wrong (with the p
 | `--spec <file>` | the document (required) |
 | `--format ron\|json` | how to read it; inferred from the extension by default |
 | `--check` | validate and describe, then exit — `1` if the document is wrong |
-| `--inline` | draw in the invoking terminal instead of the alternate screen |
+| `--inline` | draw in the invoking terminal instead of the alternate screen (opt-in; without it the picker takes the whole screen) |
 | `--height <n>` | with `--inline`, take `n` lines at the bottom |
 | `--prompt <text>` | replace the query pane's title |
 | `--theme <file>` | read the theme from this file instead |

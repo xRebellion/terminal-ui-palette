@@ -130,3 +130,22 @@ The rows are blanked rather than collapsed: a terminal cannot remove lines above
 ## Not in this item
 
 - The side-by-side rofi swap: `scripts/dmenu.sh` and `scripts/launch-apps.sh` each have one `PICKER=` line, but nobody has yet run both pickers from the same keybind and compared (that is item 13's checkable).
+
+## What driving the real window taught us (2026-11-16, during item 14)
+
+Verifying the migrated keybinds meant opening the picker from a real keybind and typing into it. Four things were wrong that the pty harness could not see:
+
+1. **`cat -` swallowed the terminal.** The floating adapter pipes the provider into the window, and `-` was the natural spelling for "my stdin". Inside the terminal `-` names the *terminal*, so the inner `cat` read the keyboard: keystrokes were fed to the picker as items, Escape never arrived, and when the terminal answered ratatui's startup cursor query (DSR, `ESC[6n`) that same `cat` ate the reply — so the picker sometimes stalled ~2 s and died with `The cursor position could not be read within a normal duration`. The adapter now materialises `cat -` from its own stdin into a temp file *before* the window opens, and passes `cat <file>` inside.
+2. **Inline was the default whenever stdout was a tty.** That made `--inline` a no-op, and a dedicated floating window drew inline at the bottom of itself. Inline is now opt-in: `--inline` asks for it, nothing else does.
+3. **A dead window stayed on screen after every exit.** kitty keeps a window open when its child exits (`close_on_child_death no`); the adapter now passes `--override close_on_child_death=yes`.
+4. **The picker did not take focus**, so keystrokes and Escape landed on the window behind it. The compositor rule now sets `stay_focused = true`.
+
+Verified from the real keybinds, typing through the window's own input path:
+
+```
+SUPER+R        run    → window, active=tuipalette, query "hto",  ESC → 0 windows
+SUPER+Space    drun   → window, active=tuipalette, query "fire", ESC → 0 windows
+SUPER+Shift+,  window → window, active=tuipalette, query "fish", ESC → 0 windows
+```
+
+And inline-with-a-pipe, the case fix 1 was about, in a real kitty window: `printf … | tuipalette --inline --height 6` → typed `b` appeared in the query, Escape exited `rc=130`, the window closed, and the line was not left drawn.

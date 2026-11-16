@@ -140,6 +140,13 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 07
 - detail: `docs/specs/16-rules.md`
 - Sequenced after the base product: items 10 and 14 first.
+### 17 — Revisit the herdr setup and the wifi flow
+- Two call sites are migrated but not yet *designed*: `layouts/dmenu.ron` with `scripts/herdr-sessions.sh`, and `scripts/wifi.sh` with `layouts/wifi.ron`.
+- herdr: the session rows carry their state as padded trailing text rather than an icon slot; `+ new session` and `- delete a session` are ordinary rows with a prefix; the message line restates what the rows say; and a herdr started from a shell could use `--inline` instead of a floating window. Decide each, and what the window size should be.
+- wifi: `rofi-wifi-menu.sh` is a 359-line flow whose parts were only partly mapped (item 14, rows 5–8). Decide what `scripts/wifi.sh` keeps, what needs library work (a masked `Input`, a message-only document), and whether the two stages become one document with rules (item 16).
+- checkable: `docs/specs/17-revisit.md` naming every behaviour of both call sites, what it becomes and the command that shows it, with `tuipalette --check` clean for both documents.
+- after: 16 — conditional actions are where `-e`, `-auto-select` and the `+`/`-` rows land
+- detail: `docs/specs/17-revisit.md`
 
 ## Decisions
 Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the digest of what still binds outstanding work.

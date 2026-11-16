@@ -4,7 +4,7 @@
 mod cli;
 mod host;
 
-use std::io::{self, BufReader, IsTerminal, Write};
+use std::io::{self, BufReader, Write};
 use std::process::ExitCode;
 use std::sync::mpsc;
 use std::time::Instant;
@@ -97,7 +97,6 @@ fn run(args: Args, started: Instant, timing: bool) -> Result<u8, (u8, String)> {
         return Ok(0);
     }
 
-    let stdout_is_tty = io::stdout().is_terminal();
     let host = host::Host::prepare().map_err(|error| (2, error.to_string()))?;
     let mut picker = Picker::new(spec)
         .map_err(|error| (1, error.to_string()))?
@@ -117,13 +116,9 @@ fn run(args: Args, started: Instant, timing: bool) -> Result<u8, (u8, String)> {
         .or(picker.session().spec().host.height)
         .or_else(|| tuipalette_tui::terminal_rows())
         .unwrap_or(10);
-    // A terminal on stdout means there is somewhere to draw inline; a pipe
-    // means we took over /dev/tty and can use the whole screen.
-    let inline = if stdout_is_tty || args.inline {
-        Some(height)
-    } else {
-        None
-    };
+    // Inline is opt-in. It used to be the default whenever stdout was a tty, which
+    // made --inline a no-op and put a dedicated floating window into inline mode.
+    let inline = if args.inline { Some(height) } else { None };
     let options = tuipalette_tui::Options {
         inline,
         timing: timing.then_some(started),

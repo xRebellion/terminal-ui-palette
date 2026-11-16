@@ -55,11 +55,24 @@ if [ -n "$geometry" ]; then
   width=${geometry%x*}
   height=${geometry#*x}
   # remember_window_size would let the previous window size win over the spec.
-  sizing=(--override remember_window_size=no --override "initial_window_width=${width}c" --override "initial_window_height=${height}c")
+  # close_on_child_death: kitty keeps a window open after its shell exits by
+  # default, so every cancel would leave a dead window behind.
+  sizing=(--override remember_window_size=no --override close_on_child_death=yes --override "initial_window_width=${width}c" --override "initial_window_height=${height}c")
 fi
 
 result=$(mktemp -t tuipalette-result.XXXXXX)
 trap 'rm -f "$result"' EXIT
+
+# `cat -` is the idiom for "the items are on my stdin", but inside the
+# terminal `-` names the terminal itself: cat would eat the keystrokes and
+# feed them to the picker as items, so typing and Escape would do nothing.
+# Read that stdin here, over the pipe, and give the window a file instead.
+if [ "${provider[0]:-}" = cat ] && [ "${provider[1]:-}" = - ] && [ "${#provider[@]}" -eq 2 ]; then
+  items=$(mktemp -t tuipalette-items.XXXXXX)
+  cat > "$items"
+  trap 'rm -f "$result" "$items"' EXIT
+  provider=(cat "$items")
+fi
 
 inner=$(printf '%q ' "$binary" --spec "$layout" --out-file "$result" "${picker_flags[@]}")
 if [ "${#provider[@]}" -gt 0 ]; then
