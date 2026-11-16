@@ -17,12 +17,21 @@
 # a different terminal or a development build can be tried without editing this.
 set -euo pipefail
 
-layout=${1:?usage: tuipalette-floating.sh <layout> [provider command...]}
+layout=${1:?usage: tuipalette-floating.sh <layout> [picker flags...] [provider command...]}
 shift
 
-# Anything left is the provider: a command whose stdout is piped into the
-# picker *inside* the terminal. A floating window has no stdin of its own, so
-# this is how items reach it (docs/PLAN.md, 08).
+# Picker flags come first (--prompt, --message, --no-sort, ...); everything
+# else is the provider — a command whose stdout is piped into the picker
+# *inside* the terminal. A floating window has no stdin of its own, so this
+# is how items reach it (docs/PLAN.md, 08).
+picker_flags=()
+while [ $# -gt 0 ]; do
+  case $1 in
+    --prompt | --message | --theme | --height) picker_flags+=("$1" "${2:?$1 needs a value}"); shift 2 ;;
+    --no-sort | --accept-query | --print-query | --icons | --no-icons) picker_flags+=("$1"); shift ;;
+    *) break ;;
+  esac
+done
 provider=("$@")
 
 binary=${TUIPALETTE_BIN:-tuipalette}
@@ -49,7 +58,7 @@ fi
 result=$(mktemp -t tuipalette-result.XXXXXX)
 trap 'rm -f "$result"' EXIT
 
-inner=$(printf '%q ' "$binary" --spec "$layout" --out-file "$result")
+inner=$(printf '%q ' "$binary" --spec "$layout" --out-file "$result" "${picker_flags[@]}")
 if [ "${#provider[@]}" -gt 0 ]; then
   inner="$(printf '%q ' "${provider[@]}") | $inner"
 fi

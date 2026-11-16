@@ -16,7 +16,7 @@ Last updated: 2026-11-16
   - 08 — Host adapters: floating window and inline · done 2026-11-16
   - 12 — Cold-start probe: is 100 ms reachable at all? · done 2026-11-16
   - 09 — Latency verdict and the daemon decision · done 2026-11-16
-  - 10 — Migrate one real picker end to end
+  - 10 — Migrate one real picker end to end · done 2026-11-16
   - 13 — Ship a rofi-like layout · done 2026-11-16
   - 14 — Rofi parity inventory and empirical check
   - 15 — Icon slots and their fallback · done 2026-11-16
@@ -105,7 +105,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 08, 12
 - detail: `docs/specs/09-latency.md`
 
-### 10 — Migrate one real picker end to end
+### 10 — Migrate one real picker end to end · done 2026-11-16
 - `~/.config/hypr/scripts/herdr-sessions.sh` (multi-step `rofi -dmenu` menus, typed input as the answer) running on `tuipalette` with no behaviour change — checkable by binding it: attach, back, empty-answer entry, cancel.
 - after: 08
 - detail: `docs/specs/10-migration.md`

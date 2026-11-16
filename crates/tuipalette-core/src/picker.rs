@@ -25,6 +25,10 @@ pub struct Picker {
     /// Everything that has arrived, unfiltered.
     items: Vec<Item>,
     query: String,
+    /// Keep the provider's order instead of ranking (rofi's `-no-sort`).
+    sorting: bool,
+    /// Accept the typed query when nothing matches (rofi's custom input).
+    accept_query: bool,
 }
 
 impl Picker {
@@ -39,7 +43,26 @@ impl Picker {
             matcher: default_matcher(),
             items: Vec::new(),
             query: String::new(),
+            sorting: true,
+            accept_query: false,
         })
+    }
+
+    /// Keep the order items arrived in. Filtering and highlighting still
+    /// happen; only the ranking is skipped, which is what a caller whose rows
+    /// already carry meaning asks for (`rofi -no-sort`).
+    pub fn no_sort(mut self, yes: bool) -> Self {
+        self.sorting = !yes;
+        self.refilter();
+        self
+    }
+
+    /// Answer `Accept` with the typed query when no row is selected. This is
+    /// `rofi -dmenu`'s default behaviour, and the only way a prompt can take
+    /// free text as its answer.
+    pub fn accept_query(mut self, yes: bool) -> Self {
+        self.accept_query = yes;
+        self
     }
 
     /// Use a different scorer — the tests use this to pin ordering.
@@ -101,6 +124,19 @@ impl Picker {
     }
 
     pub fn on_key(&mut self, key: Key) -> Outcome {
+        // Free text as the answer: only when nothing is selected, and only
+        // when the caller asked for it — otherwise Enter on an empty list
+        // stays silent, which is what a fixed-row menu wants.
+        if self.accept_query && self.rows().is_empty() {
+            let focused = self.session.focus().unwrap_or_default().to_owned();
+            if matches!(
+                self.session.keymap().resolve(&focused, key),
+                Some(Action::Accept)
+            ) {
+                let query = self.query.clone();
+                return Outcome::Invoke { command: query.clone(), value: Some(query) };
+            }
+        }
         // A document with no query pane still types: the query lives here and
         // the rows still narrow. A bind always wins over a character.
         if self.input.is_none() {
@@ -176,7 +212,9 @@ impl Picker {
                 ))
             })
             .collect();
-        scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+        if self.sorting {
+            scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+        }
         let rows = scored.into_iter().map(|(_, _, row)| row).collect();
         if let Some(menu) = self.session.pane_mut::<Menu>(&menu) {
             menu.set_rows(rows);

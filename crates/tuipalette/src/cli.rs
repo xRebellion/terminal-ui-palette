@@ -34,6 +34,12 @@ pub struct Args {
     pub theme: Option<PathBuf>,
     /// `Some(true)` reserves an icon column, `Some(false)` removes one.
     pub icons: Option<bool>,
+    /// Keep the provider's order instead of ranking (`rofi -no-sort`).
+    pub no_sort: bool,
+    /// Answer Enter with the typed query when nothing matches.
+    pub accept_query: bool,
+    /// Replace the status row with this line (`rofi -mesg`).
+    pub message: Option<String>,
     pub help: bool,
     pub version: bool,
 }
@@ -55,6 +61,9 @@ impl Default for Args {
             prompt: None,
             theme: None,
             icons: None,
+            no_sort: false,
+            accept_query: false,
+            message: None,
             help: false,
             version: false,
         }
@@ -80,6 +89,9 @@ usage: tuipalette --spec <file> [options]
   --in line|json     how items arrive on stdin (default line)
   --out line|json    how the chosen value leaves on stdout (default line)
   --print-query      print the query before the value
+  --no-sort          keep the provider's order (rofi's -no-sort)
+  --accept-query     Enter with no match answers with the typed text
+  --message <text>   replace the status row with this line (rofi -mesg)
   --print-geometry   print the document's <width>x<height> and exit
   --print-class      print the window class the floating adapter should ask for
   --out-file <path>  write the chosen value here instead of stdout
@@ -113,6 +125,9 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Args, String> {
             "--print-class" => out.print_class = true,
             "--out-file" => out.out_file = Some(PathBuf::from(take("--out-file")?)),
             "--icons" => out.icons = Some(true),
+            "--no-sort" => out.no_sort = true,
+            "--accept-query" => out.accept_query = true,
+            "--message" => out.message = Some(take("--message")?),
             "--no-icons" => out.icons = Some(false),
             "--spec" => out.spec = Some(PathBuf::from(take("--spec")?)),
             "--theme" => out.theme = Some(PathBuf::from(take("--theme")?)),
@@ -186,6 +201,9 @@ mod tests {
     #[test]
     fn icons_can_be_forced_either_way() {
         assert_eq!(args(&["--icons"]).expect("flags").icons, Some(true));
+        let rofiesque = args(&["--no-sort", "--accept-query", "--message", "hint"]).expect("flags");
+        assert!(rofiesque.no_sort && rofiesque.accept_query);
+        assert_eq!(rofiesque.message.as_deref(), Some("hint"));
         assert_eq!(args(&["--no-icons"]).expect("flags").icons, Some(false));
     }
 

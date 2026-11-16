@@ -60,6 +60,12 @@ fn run(args: Args, started: Instant, timing: bool) -> Result<u8, (u8, String)> {
             pane.title.clone_from(prompt);
         }
     }
+    if let Some(message) = &args.message {
+        // rofi's -mesg: one hint line, shown where the hints would be.
+        for pane in spec.panes.iter_mut().filter(|pane| pane.kind == Kind::Status) {
+            pane.items = vec![message.clone()];
+        }
+    }
     if let Some(icons) = args.icons {
         for pane in spec.panes.iter_mut().filter(|pane| pane.kind == Kind::Menu) {
             pane.icon_width = icons.then(|| pane.icon_width.unwrap_or(2));
@@ -93,7 +99,10 @@ fn run(args: Args, started: Instant, timing: bool) -> Result<u8, (u8, String)> {
 
     let stdout_is_tty = io::stdout().is_terminal();
     let host = host::Host::prepare().map_err(|error| (2, error.to_string()))?;
-    let mut picker = Picker::new(spec).map_err(|error| (1, error.to_string()))?;
+    let mut picker = Picker::new(spec)
+        .map_err(|error| (1, error.to_string()))?
+        .no_sort(args.no_sort)
+        .accept_query(args.accept_query);
     let (_keepalive, disconnected) = mpsc::channel();
     let source = match host.items {
         Some(file) => match args.input {

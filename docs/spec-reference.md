@@ -176,6 +176,9 @@ Exit codes: `0` accepted, `130` cancelled, `1` the document is wrong (with the p
 | `--prompt <text>` | replace the query pane's title |
 | `--theme <file>` | read the theme from this file instead |
 | `--icons` / `--no-icons` | force/remove a two-cell icon column in menu panes |
+| `--no-sort` | keep the provider's order instead of ranking (rofi's `-no-sort`) |
+| `--accept-query` | Enter with no match answers with the typed text (rofi's custom input) |
+| `--message <text>` | replace the status row with this line (rofi's `-mesg`) |
 | `--in line\|json` | stdin protocol |
 | `--out line\|json` | stdout shape |
 | `--print-query` | print the query before the value |

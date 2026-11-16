@@ -216,3 +216,43 @@ fn the_highlighted_rows_render() {
     picker.render(area, &mut buf);
     insta::assert_snapshot!("picker_highlighted", ui::screen(&buf));
 }
+
+/// `-no-sort`: filtering and highlighting still happen, ranking does not, so a
+/// caller whose rows already carry meaning keeps them where it put them.
+#[test]
+fn no_sort_keeps_the_provider_order() {
+    let mut unsorted = picker(PICKER).no_sort(true);
+    unsorted.push(items(&["zulu", "alpha", "mike"]));
+    let names: Vec<String> = unsorted.rows().into_iter().map(|row| row.item.display).collect();
+    assert_eq!(names, vec!["zulu", "alpha", "mike"], "arrival order survives");
+    unsorted.on_key(Key::new(KeyCode::Char('m'), Mods::NONE));
+    let filtered: Vec<String> = unsorted.rows().into_iter().map(|row| row.item.display).collect();
+    assert_eq!(filtered, vec!["mike"], "filtering still applies");
+}
+
+/// `--accept-query`: rofi's custom input. Enter on an empty list answers with
+/// what was typed; without the flag it stays silent, as a fixed-row menu wants.
+#[test]
+fn accept_query_answers_with_the_typed_text() {
+    let mut custom = picker(PICKER).accept_query(true);
+    custom.push(items(&["firefox", "kitty"]));
+    for c in "no-such-app".chars() {
+        custom.on_key(Key::new(KeyCode::Char(c), Mods::NONE));
+    }
+    assert!(custom.rows().is_empty(), "nothing matches");
+    let outcome = custom.on_key(Key::new(KeyCode::Enter, Mods::NONE));
+    assert_eq!(
+        outcome,
+        tuipalette_core::Outcome::Invoke {
+            command: "no-such-app".to_owned(),
+            value: Some("no-such-app".to_owned())
+        }
+    );
+
+    let mut silent = picker(PICKER);
+    silent.push(items(&["firefox"]));
+    for c in "nope".chars() {
+        silent.on_key(Key::new(KeyCode::Char(c), Mods::NONE));
+    }
+    assert_eq!(silent.on_key(Key::new(KeyCode::Enter, Mods::NONE)), tuipalette_core::Outcome::Continue);
+}
