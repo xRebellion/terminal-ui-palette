@@ -21,6 +21,15 @@ if ! hyprctl version >/dev/null 2>&1; then
   exit 0
 fi
 
+# The hidden workspace and the missing focus grab come from a rule this
+# repository does not install (docs/specs/08-hosts.md). Without it the window
+# would land on the active workspace and take the keyboard, so refuse to run
+# rather than disturb the session.
+if ! grep -q "tuipalette-verify" ~/.config/hypr/conf/windowrules.lua 2>/dev/null; then
+  echo "the verify window rule is not installed — add it from docs/specs/08-hosts.md, then re-run"
+  exit 0
+fi
+
 work=$(mktemp -d)
 class=tuipalette-verify
 before_window=$(hyprctl activewindow -j | jq -r '.class // ""')

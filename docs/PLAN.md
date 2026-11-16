@@ -21,6 +21,7 @@ Last updated: 2026-11-16
   - 14 — Rofi parity inventory and empirical check
   - 15 — Icon slots and their fallback · done 2026-11-16
   - 11 — Spec reference and component guide · done 2026-11-16
+  - 16 — Conditional actions and document transitions
 - Decisions
 - Risks
 - Open questions
@@ -128,6 +129,15 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - `docs/spec-reference.md` listing every RON field, its wire name, meaning and default, the key-map merge rules, the icon slot contract, and a guide for adding a `Component`, both complete enough that a new picker is written from the doc alone — checkable by writing one new spec (a wifi or clipboard picker) using only the reference, with no source reading.
 - after: 05
 - detail: `docs/specs/11-docs.md`
+
+### 16 — Conditional actions and document transitions
+- Today an action has one fixed effect: `Accept` takes the selection, `Quit` exits, and a document is one layout. Rofi's behaviour on an empty answer is not that — with no match it hands the typed text back, the caller fails to run it, and escape returns to the same menu — and neither is a multi-step flow like `herdr-sessions.sh`, where each menu leads to the next. This item makes the *outcome of an action* data: a rule list per action, each rule a condition and an effect, where effects can stay, accept, cancel, go back, show a message in the status row, or open another document.
+- The schema, additive and defaulting to today's behaviour: `rules: { Accept: [ (when: NoMatches, then: Message("no such entry")), (when: Always, then: Accept) ], Quit: [ (when: Stacked, then: Back), (when: Always, then: Cancel) ] }` — conditions `Always`/`HasSelection`/`NoMatches`/`QueryEmpty`, effects `Accept`/`Cancel`/`Back`/`Keep`/`Message(text)`/`Open(path)`. A message renders in the status row until the next key; `Open` pushes a document and `Back` pops it, which is the stack rofi gives for free when a script simply operates in a loop.
+- Feasibility: high, and additive. The router already turns an `Action` into an `Outcome` (`Quit`/`Continue`/`Invoke`); this generalises that one match into a rule list evaluated against a small context, and turns `Outcome` into an effect the run loop applies. Transitions need a document stack in the binary and a loader that resolves `Open` relative to the current file — a document re-parses in 0.1 ms, so a transition costs nothing worth measuring. The two real decisions are whether `Back` restores the previous query or starts clean, and whether rules are keyed by action (proposed) or by key spelling.
+- checkable by a layout with two documents where `enter` on no match shows a message and stays, `esc` goes back to the first document, and `esc` there exits — driven through `scripts/pty-check.py`, plus a test that a document without `rules` behaves exactly as it does now.
+- after: 07
+- detail: `docs/specs/16-rules.md`
+- Sequenced after the base product: items 10 and 14 first.
 
 ## Decisions
 Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the digest of what still binds outstanding work.

@@ -21,7 +21,7 @@ Both are host concerns, so both live in the adapter; the crates learned one flag
 
 ## The compositor rules
 
-Placement is the compositor's, never the picker's (D3). Two rules, both in `~/.config/hypr/conf/windowrules.lua`:
+Placement is the compositor's, never the picker's (D3). **Nothing is installed right now** — the picker will tile like any other window until these lines are added to `~/.config/hypr/conf/windowrules.lua`:
 
 ```lua
 -- the picker as a user sees it: a centred floating card
@@ -41,6 +41,8 @@ hl.window_rule({
   no_initial_focus = true,
 })
 ```
+
+The second rule is not a convenience: it is the only thing that keeps the verification off the user's screen. `scripts/verify-floating.sh` checks for it and refuses to launch when it is missing, rather than putting a window on the active workspace.
 
 Size comes from kitty, not from the compositor: the adapter turns `--print-geometry` (`60x14`) into `--override initial_window_width=60c --override initial_window_height=14c`, with `remember_window_size=no` so a previous run cannot win.
 
