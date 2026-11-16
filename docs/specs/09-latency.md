@@ -38,3 +38,24 @@ Ours is **about 2.8× slower to appear**, and the entire delta is the terminal: 
 ## First attempt, kept because it was wrong
 
 The first measurement run reported oor 119–198 ms and I quoted it as a picker that draws. It was not: the compositor-spawned script had a minimal PATH, `tuipalette` was not on it, the adapter exited 127, and kitty mapped its window before the shell inside died. The probe was measuring kitty's spawn and the table said "tuipalette". The numbers above are the retake with `TUIPALETTE_BIN` set and the adapter's log checked. The adapter now refuses to start quietly when the binary is missing.
+
+## Which terminal hosts it
+
+The same measurement, run with two terminals asked for the same 60×14 picker (alacritty and kitty are both installed here):
+
+| run | kitty | alacritty |
+|---|---|---|
+| 1 | 126 ms | 97 ms |
+| 2 | 134 ms | 93 ms |
+| 3 | 130 ms | 86 ms |
+| **median** | **~130 ms** | **~93 ms** |
+| picker's own first frame | 0.4–0.5 ms | 0.5–0.6 ms |
+
+Same keybind path, same document, same 106 entries, same instrument. **Alacritty appears about 37 ms sooner**, and the picker's own work is identical in both — the difference is entirely terminal start-up, which is what Table B said the delta was.
+
+Two caveats, both pushing the same way:
+
+- Alacritty **ignored the geometry**. Its own config asks for 100×30, `-o window.dimensions.columns=60` did not change that, and the window mapped at 800×600 px against kitty's 541×281 — so alacritty drew a ~2.5× larger area and still won.
+- The adapter's sizing flags are kitty's (`--override initial_window_width=…c`). Making the host choice a one-variable change would need a small per-terminal flag builder, which does not exist yet.
+
+The larger lever is not the terminal at all: with `--inline` there is **no window to spawn**, so the whole path collapses to the 1.3–1.9 ms in Table A whenever the picker is called from a terminal that is already open.
