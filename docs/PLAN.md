@@ -11,8 +11,8 @@ Last updated: 2026-11-16
   - 03 — Spec schema in RON, layout resolution, theme tokens · done 2026-11-16
   - 04 — Component trait, focus ring, action router, key maps · done 2026-11-16
   - 05 — Built-in components and snapshot tests · done 2026-11-16
-  - 06 — Streaming source, matcher, match highlighting
-  - 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes
+  - 06 — Streaming source, matcher, match highlighting · done 2026-11-16
+  - 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes · done 2026-11-16
   - 08 — Host adapters: floating window and inline
   - 12 — Cold-start probe: is 100 ms reachable at all?
   - 09 — Latency verdict and the daemon decision
@@ -79,12 +79,12 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 04
 - detail: `docs/specs/05-components.md`
 
-### 06 — Streaming source, matcher, match highlighting
+### 06 — Streaming source, matcher, match highlighting · done 2026-11-16
 - A source abstraction that accepts lines on stdin as they arrive (no waiting for EOF) and a `Matcher` trait at `tuipalette-core/src/matcher/mod.rs` returning order + matched character spans, which the menu turns into coloured spans; each line carries up to three TAB-separated fields (display, value, icon — D12); the default scorer is `matcher/nucleo.rs`, adapting `nucleo-matcher` for fzf-compatible ranking because the current rofi config asks for `sorting-method: "fzf"`, with `matcher/simple.rs` as the dependency-free fallback reachable through `--no-default-features`; neither crate is re-exported — checkable by `cargo test -p tuipalette-core -- matcher` (span positions and ordering, the same trait for both scorers), by `cargo build -p tuipalette-core --no-default-features` proving the lean path, and a manual run against `find /usr` showing results before the command finishes.
 - after: 04
 - detail: `docs/specs/06-source-and-matcher.md`
 
-### 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes
+### 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes · done 2026-11-16
 - `tuipalette` reads lines on stdin, writes only the chosen line to stdout, and exits `0` accepted / `130` cancelled / `2` unusable host; flags for `--spec`, `--format`, `--prompt`, `--theme`, `--inline`, `--icons`/`--no-icons`, `--print-query`, plus `--check` — checkable by `printf 'firefox\nherdr\n' | tuipalette --spec spec.ron | cat` printing exactly one line, and `esc` verified to leave stdout empty with code 130.
 - after: 05, 06
 - detail: `docs/specs/07-cli-contract.md`
