@@ -122,9 +122,12 @@ fn run(args: Args, started: Instant, timing: bool) -> Result<u8, (u8, String)> {
     let outcome = tuipalette_tui::run(&mut picker, source, &options)
         .map_err(|error| (2, error.to_string()))?;
 
-    let mut out: Box<dyn Write> = match host.value_out {
-        Some(file) => Box::new(file),
-        None => Box::new(io::stdout()),
+    let mut out: Box<dyn Write> = match (args.out_file.as_ref(), host.value_out) {
+        (Some(path), _) => Box::new(
+            std::fs::File::create(path).map_err(|error| (2, format!("{}: {error}", path.display())))?,
+        ),
+        (None, Some(file)) => Box::new(file),
+        (None, None) => Box::new(io::stdout()),
     };
     match outcome {
         tuipalette_tui::Exit::Accepted(value) => {

@@ -25,6 +25,9 @@ pub struct Args {
     pub print_query: bool,
     pub print_geometry: bool,
     pub print_class: bool,
+    /// Write the value here instead of stdout: a floating host has no stdout to
+    /// give the picker, so the adapter names a file and reads it after.
+    pub out_file: Option<PathBuf>,
     pub input: Stream,
     pub output: Stream,
     pub prompt: Option<String>,
@@ -46,6 +49,7 @@ impl Default for Args {
             print_query: false,
             print_geometry: false,
             print_class: false,
+            out_file: None,
             input: Stream::Line,
             output: Stream::Line,
             prompt: None,
@@ -78,6 +82,7 @@ usage: tuipalette --spec <file> [options]
   --print-query      print the query before the value
   --print-geometry   print the document's <width>x<height> and exit
   --print-class      print the window class the floating adapter should ask for
+  --out-file <path>  write the chosen value here instead of stdout
   -h, --help         this
   -V, --version      version
 
@@ -106,6 +111,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Args, String> {
             "--print-query" => out.print_query = true,
             "--print-geometry" => out.print_geometry = true,
             "--print-class" => out.print_class = true,
+            "--out-file" => out.out_file = Some(PathBuf::from(take("--out-file")?)),
             "--icons" => out.icons = Some(true),
             "--no-icons" => out.icons = Some(false),
             "--spec" => out.spec = Some(PathBuf::from(take("--spec")?)),

@@ -1,0 +1,29 @@
+// The dmenu case: nothing but the list and the hint row, so a script can pipe
+// lines in and get one back (docs/PLAN.md, 07).
+(
+    window: (title: "dmenu"),
+    theme: (
+        accent: "#a6e62a",
+        selected_bg: "#141411",
+        text: "#f8f8f2",
+        dim: "#75715e",
+    ),
+    host: (width: 60, height: 12, class: "tuipalette"),
+    layout: (
+        dir: Vertical,
+        sizes: ["3", "fill", "1"],
+        children: [
+            (pane: "query"),
+            (pane: "list"),
+            (pane: "status"),
+        ],
+    ),
+    panes: [
+        (id: "query", kind: Input, title: "select"),
+        (id: "list", kind: Menu),
+        (id: "status", kind: Status, items: ["enter choose", "esc cancel"]),
+    ],
+    keys: {
+        "esc": Some(Quit),
+    },
+)

@@ -1,0 +1,33 @@
+// A rofi-shaped picker: prompt, list, hints — the colours of the monokai theme
+// the old config used, and the same 60x14 card.
+//
+// This file is data. No crate names it; it is shipped so a keybind has
+// something to point at, and edited freely (docs/PLAN.md, D7).
+(
+    window: (title: "launcher"),
+    theme: (
+        accent: "#a6e62a",
+        selected_bg: "#141411",
+        text: "#f8f8f2",
+        dim: "#75715e",
+    ),
+    host: (width: 60, height: 14, class: "tuipalette"),
+    layout: (
+        dir: Vertical,
+        sizes: ["3", "fill", "1"],
+        children: [
+            (pane: "query"),
+            (pane: "results"),
+            (pane: "status"),
+        ],
+    ),
+    panes: [
+        (id: "query", kind: Input, title: "run"),
+        (id: "results", kind: Menu, title: "applications"),
+        (id: "status", kind: Status, items: ["enter run", "esc cancel", "type to filter"]),
+    ],
+    keys: {
+        "esc": Some(Quit),
+        "enter": Some(Accept),
+    },
+)
