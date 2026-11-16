@@ -2,7 +2,7 @@
 Last updated: 2026-11-16
 
 ## What works
-- Fourteen items landed, the workspace builds and its suites pass — `cargo test --workspace` → `84 passed, 0 failed`
+- Fifteen items landed, the workspace builds and its suites pass — `cargo test --workspace` → `84 passed, 0 failed`
 - A RON or JSON document parses, validates, resolves to pane rects and deserializes its key map — `cargo test -p tuipalette-core --test spec` → `16 passed`
 - Focus, bubbling, emit and key-map override/unset work headless — `cargo test -p tuipalette-core --test dispatch` → `14 passed`
 - The built-ins draw from their pane kind, pinned by snapshots, with icon slots whose four fill states keep the text column fixed — `cargo test -p tuipalette-core --test components` → `16 passed`
@@ -12,6 +12,7 @@ Last updated: 2026-11-16
 - **Inline host, in a real kitty** — the picker's region is wiped and the cursor parked at its first cell, so the next output starts clean: screen after exit showed blank rows then `beta`, `AFTER-LINE rc=0`, `MARK>hey`, `GOT[hey]`; scrollback contained no frame characters (`grep -c 'select\|enter choose'` → `0`)
 - A new picker can be written from `docs/spec-reference.md` alone — `layouts/wifi.ron` + `scripts/wifi.sh` were, and `--check` → `ok — 3 panes, 2 bindings`, typed `cafe` + enter → `cafe`
 - `herdr-sessions.sh` runs on the picker — the live script opens with its prompt, hint line and caller order, and escape returns `rc=0`; attach, new+typed name, delete+confirm, cancel and decline also driven through a fake picker and stubs; the three rofi-shaped flags checked in a pty
+- The three rofi *modes* have equivalents, verified: `run` (`scripts/run-command.sh`, 4669 candidates, free text accepted), `drun` (`scripts/launch-apps.sh`) and `window` (`scripts/switch-window.sh`, address returned); `calc` and `-password` are benched with reasons in `docs/specs/14-parity.md`
 - The picker matches rofi on the same keybind — same card, same entries, compared on screen; whole path 117–132 ms against rofi's 42–45 ms, the delta being the terminal's spawn
 - The timing switch reports its phases, and the whole cold path fits the budget — `TUIPALETTE_TIMING=1` → `spec-parse 0.1ms, terminal-init 0.5–0.8ms, first-frame 0.7–1.0ms` (**under 2 ms**, terminal spawn 217–495 ms measured separately)
 
@@ -28,12 +29,11 @@ Last updated: 2026-11-16
 | `crates/tuipalette-tui` | crossterm backend, key decoding, draw loop, inline teardown | `cargo test -p tuipalette-tui` |
 | `crates/tuipalette` | the picker binary: flags, fd handling, exit codes, timing switch | `scripts/pty-check.py ./target/release/tuipalette …` |
 | `layouts/` | `rofi-like.ron`, `dmenu.ron`, `wifi.ron` — data no crate names; hints carry navigation | `for f in layouts/*.ron; do tuipalette --check --spec $f; done` → three `ok` lines |
-| `scripts/` | pty harness, floating adapter, app/dmenu providers, focus-safe verification | `scripts/verify-floating.sh` → `result: ok` |
+| `scripts/` | pty harness, floating adapter, app/dmenu/window/run providers, focus-safe verification | `scripts/run-command.sh --list | wc -l` → `4669`; `scripts/switch-window.sh --list | wc -l` → `9` |
 | `~/.config/hypr/conf/windowrules.lua` | the **floating rule is installed** (verified: `floating: true`, 541x241 px for the 60x12 dmenu document); the verify rule is not, so `scripts/verify-floating.sh` refuses to run | `grep -c tuipalette-floating ~/.config/hypr/conf/windowrules.lua`; `hyprctl clients -j` |
 | host toolchain | rustc/cargo 1.95.0 | `cargo --version` |
 
 ## Next steps
-- [ ] 14 — rofi parity inventory: every `rofi` call site in `~/.config/hypr/scripts` against the shipped layout (both blockers are now done)
 
 ## How to reproduce the verification
 From the repo root on the host: `cargo build --workspace && cargo test --workspace` (rustc 1.95.0; crates resolve from crates.io on the first build). Then run the commands in "What works" in this order. The two host checks need a live session: `scripts/verify-floating.sh` for the compositor, and a kitty window running `printf 'alpha\nbeta\n' | tuipalette --inline --height 6` for the inline one.

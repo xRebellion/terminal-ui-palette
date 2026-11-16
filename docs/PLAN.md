@@ -18,7 +18,7 @@ Last updated: 2026-11-16
   - 09 — Latency verdict and the daemon decision · done 2026-11-16
   - 10 — Migrate one real picker end to end · done 2026-11-16
   - 13 — Ship a rofi-like layout · done 2026-11-16
-  - 14 — Rofi parity inventory and empirical check
+  - 14 — Rofi parity inventory and empirical check · done 2026-11-16
   - 15 — Icon slots and their fallback · done 2026-11-16
   - 11 — Spec reference and component guide · done 2026-11-16
   - 16 — Conditional actions and document transitions
@@ -115,8 +115,10 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 07
 - detail: `docs/specs/13-rofi-like-layout.md`
 
-### 14 — Rofi parity inventory and empirical check
-- Every `rofi` call site in `~/.config/hypr/scripts` enumerated with the flags it uses (`-dmenu`, `-no-sort`, `-mesg`, `-p`, `-theme`, empty-line semantics), each run against the shipped layout and recorded as migrated, benched or impossible — checkable by the inventory table in the item's spec, with a command and its output for each migrated row.
+### 14 — Rofi parity inventory and empirical check · done 2026-11-16
+- Every rofi call site **a user can still reach** enumerated — `~/.config/hypr/scripts` (which, after item 10, has none left), the four binds that go through `MENU = "rofi -show"` in `hyprland.lua` (`run`, `drun`, `window`, `calc`), and `~/.local/bin/rofi-wifi-menu.sh` with `-dmenu`/`-password`/`-auto-select`/`-location`/`-opacity`/`-font`/`-e` — each recorded as migrated, benched or impossible, with the flags it used.
+- The original wording scoped this to `~/.config/hypr/scripts`, where the only call site was the herdr picker and item 10 had already migrated it: the checkable would have passed while claiming nothing. Widened to the sites that actually exist.
+- checkable by the inventory table in the item's spec, with a command and its output for every migrated row, and a one-line reason for every benched or impossible one.
 - after: 10, 13
 - detail: `docs/specs/14-parity.md`
 
