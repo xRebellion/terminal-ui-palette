@@ -8,7 +8,7 @@ Last updated: 2026-11-16
 - Work
   - 01 — Feasibility spike: components, actions, layout from a spec · done 2026-11-16
   - 02 — Workspace skeleton and repo hygiene · done 2026-11-16
-  - 03 — Spec schema in RON, layout resolution, theme tokens
+  - 03 — Spec schema in RON, layout resolution, theme tokens · done 2026-11-16
   - 04 — Component trait, focus ring, action router, key maps
   - 05 — Built-in components and snapshot tests
   - 06 — Streaming source, matcher, match highlighting
@@ -64,7 +64,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 01
 - detail: `docs/specs/02-workspace.md`
 
-### 03 — Spec schema in RON, layout resolution, theme tokens
+### 03 — Spec schema in RON, layout resolution, theme tokens · done 2026-11-16
 - `UiSpec` in `tuipalette-core`: window, theme tokens (hex colours), pane declarations, key maps, an icon slot width, a split tree with vertical/horizontal nodes and the `fill|N|N%|min:N|max:N` size grammar, deserialized from RON with every wire name pinned by `#[serde(rename)]` and `deny_unknown_fields`, plus a JSON adapter behind `--format json`; validation errors carrying line/column and the field path — checkable by `cargo test -p tuipalette-core -- spec` (a golden table of spec→`Vec<(id, Rect)>` cases across both formats, plus a malformed spec that must name its field) and `tuipalette --check --spec bad.ron` exiting non-zero with that message.
 - after: 01
 - detail: `docs/specs/03-spec-and-layout.md`

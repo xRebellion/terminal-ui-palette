@@ -1,0 +1,27 @@
+{
+  "window": { "title": "launcher" },
+  "theme": { "accent": "#89b4fa", "selected_bg": "#313244", "text": "#cdd6f4" },
+  "layout": {
+    "dir": "Vertical",
+    "sizes": ["3", "fill", "1"],
+    "children": [
+      { "pane": "query" },
+      {
+        "dir": "Vertical",
+        "sizes": ["50%", "50%"],
+        "children": [
+          { "pane": "results" },
+          { "pane": "preview" }
+        ]
+      },
+      { "pane": "status" }
+    ]
+  },
+  "panes": [
+    { "id": "query", "kind": "Input", "title": "search" },
+    { "id": "results", "kind": "Menu", "title": "results", "items": ["firefox", "kitty"] },
+    { "id": "preview", "kind": "Text", "title": "preview", "items": ["firefox — 130 MB"] },
+    { "id": "status", "kind": "Text", "items": ["enter: run"] }
+  ],
+  "keys": { "esc": "Quit", "tab": "FocusNext", "ctrl-j": null }
+}

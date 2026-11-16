@@ -8,6 +8,8 @@ Last updated: 2026-11-16
 - Whole suite — `cd spike && cargo test` → `4 passed; 0 failed`
 - Interactive path under a pty: renders the frame, accepts, cancels, restores the screen — `bash spike/tty-check.sh` → `exit=1` on esc, `exit=0` with `firefox` on stdout on enter
 - Workspace of three crates builds and links — `cargo build --workspace` → `Finished`; `cargo test --workspace` → all suites ok
+- Spec parses and validates in RON and JSON, geometry resolves — `cargo test -p tuipalette-core --test spec` → `16 passed`
+- `--check` reports a broken spec with a field path or a line/column — `./target/debug/tuipalette --check --spec <bad>` → exit 1
 
 ## Known broken and believed
 - **Believed:** the draw loop wastes a frame per 200 ms poll timeout (each idle tick redraws); would confirm by counting frames in `spike/tty-check.sh` output, and it must be fixed before item 09 measures key-to-paint.
@@ -22,8 +24,8 @@ Last updated: 2026-11-16
 | host toolchain | rustc/cargo 1.95.0 | `cargo --version` |
 
 ## Next steps
-- [ ] 03: RON schema, layout resolution and theme tokens in `tuipalette-core`
-- [ ] 04: component trait, focus ring, action router, key maps (needs 03's `UiSpec`)
+- [ ] 04: component trait, focus ring, action router, key maps over `UiSpec`
+- [ ] 05: built-in components (input, menu, text, status) + `insta` snapshots
 
 ## How to reproduce the verification
 On the host: `cd ~/Code/hobby/terminal-ui-lib && cargo build --workspace && cargo test --workspace`, then `cd spike && cargo test && bash tty-check.sh`. Crates resolve from crates.io on first build (ratatui 0.30.2, ron 0.12.3, serde 1). Then run the commands in "What works" in this order.
