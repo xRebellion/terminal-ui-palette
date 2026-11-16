@@ -11,7 +11,7 @@ Last updated: 2026-11-16
 - **Floating host, on a real compositor** — `scripts/verify-floating.sh` → `class tuipalette-verify, floating, 541x281 px (=60x14 cells), special:tuipalette-verify`, `focus before/after` unchanged, `value: beta`, `windows left: 0`, `result: ok`
 - **Inline host, in a real kitty** — the picker's region is wiped and the cursor parked at its first cell, so the next output starts clean: screen after exit showed blank rows then `beta`, `AFTER-LINE rc=0`, `MARK>hey`, `GOT[hey]`; scrollback contained no frame characters (`grep -c 'select\|enter choose'` → `0`)
 - A new picker can be written from `docs/spec-reference.md` alone — `layouts/wifi.ron` + `scripts/wifi.sh` were, and `--check` → `ok — 3 panes, 2 bindings`, typed `cafe` + enter → `cafe`
-- `herdr-sessions.sh` runs on the picker — attach, new+typed name, delete+confirm, cancel and decline all driven through a fake picker and stubs; the three rofi-shaped flags (`--no-sort`, `--message`, `--accept-query`) checked in a pty
+- `herdr-sessions.sh` runs on the picker — the live script opens with its prompt, hint line and caller order, and escape returns `rc=0`; attach, new+typed name, delete+confirm, cancel and decline also driven through a fake picker and stubs; the three rofi-shaped flags checked in a pty
 - The picker matches rofi on the same keybind — same card, same entries, compared on screen; whole path 117–132 ms against rofi's 42–45 ms, the delta being the terminal's spawn
 - The timing switch reports its phases, and the whole cold path fits the budget — `TUIPALETTE_TIMING=1` → `spec-parse 0.1ms, terminal-init 0.5–0.8ms, first-frame 0.7–1.0ms` (**under 2 ms**, terminal spawn 217–495 ms measured separately)
 
