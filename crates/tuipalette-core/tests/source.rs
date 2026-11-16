@@ -139,6 +139,27 @@ fn the_picker_narrows_as_the_query_is_typed() {
 }
 
 #[test]
+fn a_document_without_a_query_pane_still_types() {
+    let mut picker = picker(
+        r##"(
+            window: (title: "dmenu"),
+            layout: (pane: "list"),
+            panes: [(id: "list", kind: Menu)],
+        )"##,
+    );
+    picker.push(items(&["firefox", "herdr", "zathura"]));
+    for c in "her".chars() {
+        picker.on_key(Key::new(KeyCode::Char(c), Mods::NONE));
+    }
+    assert_eq!(picker.query(), "her");
+    let names: Vec<String> = picker.rows().into_iter().map(|row| row.item.display).collect();
+    assert_eq!(names, vec!["herdr"]);
+    picker.on_key(Key::new(KeyCode::Backspace, Mods::NONE));
+    assert_eq!(picker.query(), "he");
+    assert_eq!(picker.rows().len(), 1, "\"he\" still only finds herdr");
+}
+
+#[test]
 fn a_row_carries_the_characters_to_highlight() {
     let mut picker = picker(PICKER);
     picker.push(items(&["firefox"]));

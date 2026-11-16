@@ -59,16 +59,58 @@ pub struct UiSpec {
     pub panes: Vec<Pane>,
     #[serde(rename = "keys", default)]
     pub keys: BTreeMap<String, Option<Action>>,
+    /// How the host should present this picker — a hint for the adapters; the
+    /// library itself never places a window (docs/PLAN.md, D3).
+    #[serde(rename = "host", default)]
+    pub host: Host,
+}
+
+/// What an adapter needs to know about the window it should make.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Host {
+    /// Width in cells.
+    #[serde(rename = "width", default)]
+    pub width: Option<u16>,
+    /// Height in lines.
+    #[serde(rename = "height", default)]
+    pub height: Option<u16>,
+    /// Window class the floating adapter asks its terminal for, so a compositor
+    /// rule can match it.
+    #[serde(rename = "class", default)]
+    pub class: Option<String>,
 }
 
 /// RON needs one extension to read the way the docs say it does: without
 /// `IMPLICIT_SOME` every `Option` field would have to be written `Some(...)`,
 /// and `dir: Vertical` would be a parse error.
+/// Parse a theme file. Same options as a whole document, so `#rrggbb` reads
+/// the same in both.
+pub fn parse_theme(text: &str) -> Result<Theme, SpecError> {
+    ron_options().from_str(text).map_err(|e| {
+        SpecError::at_location(
+            Location {
+                line: e.span.start.line,
+                column: e.span.start.col,
+            },
+            e.code.to_string(),
+        )
+    })
+}
+
 fn ron_options() -> ron::Options {
     ron::Options::default().with_default_extension(ron::extensions::Extensions::IMPLICIT_SOME)
 }
 
 impl UiSpec {
+    /// `WxH` when the document says, for the floating adapter's script.
+    pub fn geometry(&self) -> Option<String> {
+        match (self.host.width, self.host.height) {
+            (Some(width), Some(height)) => Some(format!("{width}x{height}")),
+            _ => None,
+        }
+    }
+
     /// Read, parse, then validate. `format` overrides the file extension.
     pub fn load(path: &Path, format: Option<Format>) -> Result<Self, SpecError> {
         let text = std::fs::read_to_string(path)
@@ -174,6 +216,15 @@ pub struct Theme {
 
 fn default_dim() -> String {
     "#6c7086".to_owned()
+}
+
+impl Theme {
+    /// Read a theme from a RON file — the `--theme` flag's only job.
+    pub fn load(path: &std::path::Path) -> Result<Self, SpecError> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|error| SpecError::plain(format!("{}: {error}", path.display())))?;
+        crate::spec::parse_theme(&text)
+    }
 }
 
 impl Default for Theme {

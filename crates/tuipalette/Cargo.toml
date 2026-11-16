@@ -11,5 +11,7 @@ name = "tuipalette"
 path = "src/main.rs"
 
 [dependencies]
+serde_json.workspace = true
+libc = "0.2"
 tuipalette-core.workspace = true
 tuipalette-tui.workspace = true

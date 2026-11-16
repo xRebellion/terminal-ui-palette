@@ -101,6 +101,26 @@ impl Picker {
     }
 
     pub fn on_key(&mut self, key: Key) -> Outcome {
+        // A document with no query pane still types: the query lives here and
+        // the rows still narrow. A bind always wins over a character.
+        if self.input.is_none() {
+            let focused = self.session.focus().unwrap_or_default().to_owned();
+            if self.session.keymap().resolve(&focused, key).is_none() {
+                match key.code {
+                    crate::key::KeyCode::Char(c) if !key.mods.ctrl && !key.mods.alt => {
+                        self.query.push(c);
+                        self.refilter();
+                        return Outcome::Continue;
+                    }
+                    crate::key::KeyCode::Backspace => {
+                        self.query.pop();
+                        self.refilter();
+                        return Outcome::Continue;
+                    }
+                    _ => {}
+                }
+            }
+        }
         let before = self.current_query();
         let outcome = self.session.on_key(key);
         self.sync_query(before);

@@ -118,16 +118,7 @@ impl Key {
                 }
             }
         }
-        let mut code = parse_code(base)?;
-        // A capital letter means shift was held, so `J` and `shift-j` are one
-        // bind instead of two that only one terminal reports.
-        if let KeyCode::Char(c) = code {
-            if c.is_ascii_uppercase() {
-                mods.shift = true;
-                code = KeyCode::Char(c.to_ascii_lowercase());
-            }
-        }
-        Ok(Key { code, mods })
+        Ok(Key { code: parse_code(base)?, mods }.normalised())
     }
 }
 
@@ -168,6 +159,24 @@ fn parse_code(text: &str) -> Result<KeyCode, String> {
         _ => Err(format!(
             "`{text}` is not a key — one character, or a name such as esc, enter, tab,              backspace, delete, space, up, down, left, right, home, end, pageup, pagedown, f1..f24"
         )),
+    }
+}
+
+impl Key {
+    /// The canonical spelling: a capital letter becomes shift plus the letter,
+    /// so `J` and `shift-j` are one bind. Both the spec's spelling and a
+    /// terminal's decoded event are normalised before they are compared.
+    pub fn normalised(self) -> Self {
+        match self.code {
+            KeyCode::Char(c) if c.is_ascii_uppercase() => Self {
+                code: KeyCode::Char(c.to_ascii_lowercase()),
+                mods: Mods {
+                    shift: true,
+                    ..self.mods
+                },
+            },
+            _ => self,
+        }
     }
 }
 

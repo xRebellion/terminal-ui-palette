@@ -7,5 +7,6 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+crossterm = "0.29"
 ratatui.workspace = true
 tuipalette-core.workspace = true

@@ -299,6 +299,44 @@ fn typing_reaches_the_focused_component_with_no_bind_for_it() {
     assert_eq!(a.seen(), vec![Action::Input('f')], "ctrl-f is not typing");
 }
 
+const NO_KEYS: &str = r##"(
+    window: (title: "t"),
+    layout: (pane: "a"),
+    panes: [(id: "a")],
+)"##;
+
+#[test]
+fn a_document_with_no_keys_still_has_the_defaults() {
+    let s = Session::new(spec(NO_KEYS), vec![Spy::new("a", ignore).boxed()]).expect("session");
+    let control = s.keymap();
+    assert_eq!(control.resolve("a", key(KeyCode::Down, Mods::NONE)), Some(&Action::Down));
+    assert_eq!(control.resolve("a", key(KeyCode::Up, Mods::NONE)), Some(&Action::Up));
+    assert_eq!(control.resolve("a", key(KeyCode::Enter, Mods::NONE)), Some(&Action::Accept));
+    assert_eq!(control.resolve("a", key(KeyCode::Esc, Mods::NONE)), Some(&Action::Quit));
+    assert_eq!(control.resolve("a", key(KeyCode::Tab, Mods::NONE)), Some(&Action::FocusNext));
+    assert_eq!(
+        control.resolve("a", key(KeyCode::Tab, Mods::SHIFT)),
+        Some(&Action::FocusPrev)
+    );
+}
+
+#[test]
+fn a_document_can_clear_a_default() {
+    let text = r##"(
+        window: (title: "t"),
+        layout: (pane: "a"),
+        panes: [(id: "a")],
+        keys: { "esc": None },
+    )"##;
+    let s = Session::new(spec(text), vec![Spy::new("a", ignore).boxed()]).expect("session");
+    assert_eq!(s.keymap().resolve("a", key(KeyCode::Esc, Mods::NONE)), None);
+    assert_eq!(
+        s.keymap().resolve("a", key(KeyCode::Down, Mods::NONE)),
+        Some(&Action::Down),
+        "clearing one default leaves the rest"
+    );
+}
+
 #[test]
 fn a_key_string_that_is_not_a_key_names_its_path() {
     let err = UiSpec::parse(

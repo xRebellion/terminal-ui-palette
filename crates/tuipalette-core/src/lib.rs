@@ -34,7 +34,7 @@ pub use key::{Key, KeyCode, Mods, Phase};
 pub use keymap::Keymap;
 pub use matcher::{default_matcher, Match, Matcher};
 pub use picker::Picker;
-pub use source::{parse_line, stream, stdin};
+pub use source::{parse_json_line, parse_line, stream, stream_json, stdin};
 pub use session::{Outcome, Session};
 pub use spec::{Format, UiSpec};
 

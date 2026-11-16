@@ -21,8 +21,13 @@ pub struct Keymap {
 impl Keymap {
     /// Parse every key string in the document. A key that is not a key is
     /// refused here, with its path, rather than binding nothing at runtime.
+    ///
+    /// The document is laid over the defaults, so a picker has arrows and enter
+    /// out of the box, a document can rebind them, and an explicit `None` turns
+    /// one off.
     pub fn from_spec(spec: &UiSpec) -> Result<Self, SpecError> {
-        let global = parse_map(&spec.keys, "keys")?;
+        let mut global = defaults();
+        global.extend(parse_map(&spec.keys, "keys")?);
         let mut panes = BTreeMap::new();
         for (i, pane) in spec.panes.iter().enumerate() {
             let path = format!("panes[{i}].keys");
@@ -33,6 +38,7 @@ impl Keymap {
 
     /// The bind that applies while `pane` has focus.
     pub fn resolve(&self, pane: &str, key: Key) -> Option<&Action> {
+        let key = key.normalised();
         if let Some(bind) = self.panes.get(pane).and_then(|map| map.get(&key)) {
             return bind.as_ref();
         }
@@ -62,6 +68,27 @@ impl Keymap {
         }
         out
     }
+}
+
+/// What every picker answers to before a document says otherwise.
+pub fn defaults() -> BTreeMap<Key, Option<Action>> {
+    let mut map = BTreeMap::new();
+    for (spelling, action) in [
+        ("up", Action::Up),
+        ("down", Action::Down),
+        ("ctrl-p", Action::Up),
+        ("ctrl-n", Action::Down),
+        ("ctrl-k", Action::Up),
+        ("ctrl-j", Action::Down),
+        ("enter", Action::Accept),
+        ("tab", Action::FocusNext),
+        ("shift-tab", Action::FocusPrev),
+        ("esc", Action::Quit),
+    ] {
+        let key = Key::parse(spelling).expect("a default spelling is a valid key");
+        map.insert(key, Some(action));
+    }
+    map
 }
 
 fn parse_map(

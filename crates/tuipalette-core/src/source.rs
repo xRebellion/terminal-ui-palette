@@ -71,3 +71,48 @@ pub fn stream<R: BufRead + Send + 'static>(reader: R) -> Receiver<Item> {
 pub fn stdin() -> Receiver<Item> {
     stream(BufReader::new(std::io::stdin()))
 }
+
+/// One line of `--in json`: either a bare string or an object with any of
+/// `display`, `value` and `icon` (docs/PLAN.md, D16 — the opt-in path for
+/// values that a TAB-separated line cannot carry, newlines included).
+pub fn parse_json_line(line: &str) -> Option<Item> {
+    let line = line.trim();
+    if line.is_empty() {
+        return None;
+    }
+    if let Ok(text) = serde_json::from_str::<String>(line) {
+        return Some(Item::line(text));
+    }
+    let object: JsonItem = serde_json::from_str(line).ok()?;
+    let display = object.display.or_else(|| object.value.clone())?;
+    let value = object.value.unwrap_or_else(|| display.clone());
+    Some(Item {
+        display,
+        value,
+        icon: object.icon.filter(|icon| !icon.is_empty()),
+    })
+}
+
+#[derive(serde::Deserialize)]
+struct JsonItem {
+    display: Option<String>,
+    value: Option<String>,
+    icon: Option<String>,
+}
+
+/// `stream` for the JSON protocol.
+pub fn stream_json<R: BufRead + Send + 'static>(reader: R) -> Receiver<Item> {
+    let (sender, receiver) = mpsc::channel();
+    std::thread::spawn(move || {
+        for line in reader.lines() {
+            let Ok(line) = line else { break };
+            let Some(item) = parse_json_line(&line) else {
+                continue;
+            };
+            if sender.send(item).is_err() {
+                break;
+            }
+        }
+    });
+    receiver
+}

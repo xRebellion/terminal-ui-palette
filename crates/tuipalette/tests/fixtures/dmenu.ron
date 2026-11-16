@@ -1,0 +1,8 @@
+// The smallest useful document: a list, no query, nothing but what arrives on
+// stdin. This is the dmenu contract.
+(
+    window: (title: "dmenu"),
+    host: (height: 10),
+    layout: (pane: "list"),
+    panes: [(id: "list", kind: Menu)],
+)
