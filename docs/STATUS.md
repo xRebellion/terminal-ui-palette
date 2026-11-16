@@ -29,7 +29,7 @@ Last updated: 2026-11-16
 | `crates/tuipalette` | the picker binary: flags, fd handling, exit codes, timing switch | `scripts/pty-check.py ./target/release/tuipalette …` |
 | `layouts/` | `rofi-like.ron`, `dmenu.ron`, `wifi.ron` — data no crate names; hints carry navigation | `for f in layouts/*.ron; do tuipalette --check --spec $f; done` → three `ok` lines |
 | `scripts/` | pty harness, floating adapter, app/dmenu providers, focus-safe verification | `scripts/verify-floating.sh` → `result: ok` |
-| `~/.config/hypr/conf/windowrules.lua` | **no tuipalette rules installed** — the picker tiles until they are added, and `scripts/verify-floating.sh` refuses to launch without the verify rule | `grep -c tuipalette ~/.config/hypr/conf/windowrules.lua` → `0`; `cd ~/dotfiles_private && git status --porcelain hypr/conf/windowrules.lua` → empty |
+| `~/.config/hypr/conf/windowrules.lua` | the **floating rule is installed** (verified: `floating: true`, 541x241 px for the 60x12 dmenu document); the verify rule is not, so `scripts/verify-floating.sh` refuses to run | `grep -c tuipalette-floating ~/.config/hypr/conf/windowrules.lua`; `hyprctl clients -j` |
 | host toolchain | rustc/cargo 1.95.0 | `cargo --version` |
 
 ## Next steps

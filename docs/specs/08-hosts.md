@@ -46,6 +46,18 @@ The second rule is not a convenience: it is the only thing that keeps the verifi
 
 Size comes from kitty, not from the compositor: the adapter turns `--print-geometry` (`60x14`) into `--override initial_window_width=60c --override initial_window_height=14c`, with `remember_window_size=no` so a previous run cannot win.
 
+### Three ways to make it float, measured
+
+| mechanism | measured | applies when |
+|---|---|---|
+| **static window rule** (config) | floating at map, size exactly 60x14 cells (541x281 px), centred at [690,426]; no flash | anything launches it — keybind, script, terminal |
+| **per-exec rule** `hl.dsp.exec_cmd(cmd, { float = true, center = true })` | floating at map, no flash | only when the *compositor* starts the process, so a script that runs kitty itself cannot use it |
+| **dispatch after map** `hl.dsp.window.float()` | tiled at [22,75] for 37 ms, then floating at [485,68], size grew to 950x997 | anything, but it targets the *active* window |
+
+The rule wins on three counts: the adapter stays compositor-agnostic (D3 — the host places the window, the picker does not ask), it is the only option that works when `herdr-sessions.sh` launches kitty itself, and it has no race — the dispatch form leaves a tiled frame on screen for about 37 ms and then floats whatever has focus, which is the wrong window if focus moved.
+
+Installed today: the floating rule only. The verify rule is not installed, which is why `scripts/verify-floating.sh` refuses to run.
+
 ## Verification
 
 `scripts/verify-floating.sh` launches through the same adapter a keybind would use, but under the verify rule, so nothing appears and nothing takes focus. It then drives the window through kitty's remote control.
