@@ -141,7 +141,12 @@ impl UiSpec {
         }
 
         let mut drawn = BTreeSet::new();
-        layout::validate(&self.layout, "layout", &ids, &mut drawn)
+        layout::validate(&self.layout, "layout", &ids, &mut drawn)?;
+
+        // A key string that is not a key would silently bind nothing, so it is a
+        // spec error with its path (D8).
+        crate::keymap::Keymap::from_spec(self)?;
+        Ok(())
     }
 }
 

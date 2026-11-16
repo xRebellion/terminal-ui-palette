@@ -9,7 +9,7 @@ Last updated: 2026-11-16
   - 01 — Feasibility spike: components, actions, layout from a spec · done 2026-11-16
   - 02 — Workspace skeleton and repo hygiene · done 2026-11-16
   - 03 — Spec schema in RON, layout resolution, theme tokens · done 2026-11-16
-  - 04 — Component trait, focus ring, action router, key maps
+  - 04 — Component trait, focus ring, action router, key maps · done 2026-11-16
   - 05 — Built-in components and snapshot tests
   - 06 — Streaming source, matcher, match highlighting
   - 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes
@@ -69,8 +69,8 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 01
 - detail: `docs/specs/03-spec-and-layout.md`
 
-### 04 — Component trait, focus ring, action router, key maps
-- `Component { id, focusable, render, update -> Reaction, value }` plus the router: global actions first (`quit`, `focus-next/prev`), then the focused pane, then bubbling to the rest, and `Reaction::Emit(Action::Invoke(..))` reaching app-level command handling; key maps resolve per-pane over a global map, an explicit `none` clears an inherited bind, and release/repeat key events are ignored — checkable by `cargo test -p tuipalette-core -- dispatch` covering focus skip over non-focusable panes, bubbling, emit, override and unset.
+### 04 — Component trait, focus ring, action router, key maps · done 2026-11-16
+- `Component { id, focusable, render, update -> Reaction, value }` plus the router: global actions first (`quit`, `focus-next/prev`), then the focused pane, then bubbling to the rest, and `Reaction::Emit(Action::Invoke(..))` reaching app-level command handling; key maps resolve per-pane over a global map, an explicit `none` clears an inherited bind, and release/repeat key events are ignored — checkable by `cargo test -p tuipalette-core --test dispatch` covering focus skip over non-focusable panes, bubbling, emit, override and unset.
 - after: 02, 03
 - detail: `docs/specs/04-component-dispatch.md`
 

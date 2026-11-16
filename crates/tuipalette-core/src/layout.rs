@@ -98,7 +98,23 @@ pub fn validate(
     }
 }
 
-/// Hand every pane its rectangle, in document order.
+/// The pane ids in the order the tree draws them — the order `Tab` should walk,
+/// which is what the user sees rather than the order the document lists panes.
+pub fn pane_order(node: &Node) -> Vec<&str> {
+    fn walk<'a>(node: &'a Node, out: &mut Vec<&'a str>) {
+        if let Some(id) = &node.pane {
+            out.push(id.as_str());
+        }
+        for child in &node.children {
+            walk(child, out);
+        }
+    }
+    let mut out = Vec::new();
+    walk(node, &mut out);
+    out
+}
+
+/// Hand every pane its rectangle, in draw order.
 pub fn resolve(node: &Node, area: Rect) -> Result<Vec<(String, Rect)>, SpecError> {
     let mut out = Vec::new();
     walk(node, area, "layout", &mut out)?;
