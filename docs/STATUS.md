@@ -15,7 +15,7 @@ Last updated: 2026-11-16
 
 ## Known broken and believed
 - **Known gap:** enter with no matches does nothing — `Menu` answers `Handled` over an empty list, so a mistyped query gets silence instead of a cancel or the typed text; would fix by making accept-on-empty return the query when `--print-query` is set.
-- **Believed:** ¶--out-file¶ is correct only because `scripts/verify-floating.sh` exercises it; it has no unit test, so a refactor could break it silently.
+- **Thin cover:** `--out-file` is exercised end to end by `scripts/verify-floating.sh` and by nothing smaller — a refactor of the write path would break the floating host, which that script catches, but there is no unit test that names the behaviour.
 - **Believed:** `scripts/apps.sh` mis-lists applications on a multi-locale system (first `Name=`, no `TryExec`); would confirm with `LANG=de_DE.UTF-8` against `rofi -show drun`.
 
 ## State of what the project touches
