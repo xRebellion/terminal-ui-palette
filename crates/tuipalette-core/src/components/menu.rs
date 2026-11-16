@@ -1,7 +1,8 @@
-//! The list: items, a selection that clamps at both ends, a window that keeps
-//! the selection on screen, and an icon column when the pane asks for one.
+//! The list: rows, a selection that clamps at both ends, a window that keeps the
+//! selection on screen, an icon column when the pane asks for one, and the
+//! matched characters of a query drawn differently from the rest.
 //!
-//! The icon column is reserved here and filled by whoever supplies the items —
+//! The icon column is reserved here and filled by whoever supplies the rows —
 //! the library never looks a glyph up (docs/PLAN.md, D11).
 
 use crate::action::Action;
@@ -30,12 +31,29 @@ impl Item {
     }
 }
 
+/// A row that survived the matcher, with the characters to emphasise.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Row {
+    pub item: Item,
+    /// Character indices into `item.display`, ascending.
+    pub positions: Vec<usize>,
+}
+
+impl Row {
+    pub fn plain(item: Item) -> Self {
+        Self {
+            item,
+            positions: Vec::new(),
+        }
+    }
+}
+
 pub struct Menu {
     id: String,
     title: String,
-    items: Vec<Item>,
+    rows: Vec<Row>,
     selected: usize,
-    /// Width of the icon column, if the pane declares one.
+    /// Width of the icon column in cells, if the pane declares one.
     icon_width: Option<u16>,
 }
 
@@ -44,32 +62,37 @@ impl Menu {
         Self {
             id: pane.id.clone(),
             title: pane.title.clone(),
-            items: pane.items.iter().map(Item::line).collect(),
+            rows: pane.items.iter().map(|text| Row::plain(Item::line(text))).collect(),
             selected: 0,
             icon_width: pane.icon_width.map(u16::from),
         }
     }
 
-    /// Replace the rows, keeping the selection inside them — the hook a
-    /// streaming source will hold (item 06).
-    pub fn set_items(&mut self, items: Vec<Item>) {
-        self.items = items;
+    /// Replace the rows, keeping the selection inside them. This is the hook the
+    /// picker holds: each keystroke recomputes the rows.
+    pub fn set_rows(&mut self, rows: Vec<Row>) {
+        self.rows = rows;
         self.clamp();
     }
 
-    pub fn items(&self) -> &[Item] {
-        &self.items
+    pub fn set_items(&mut self, items: Vec<Item>) {
+        self.set_rows(items.into_iter().map(Row::plain).collect());
+    }
+
+    pub fn rows(&self) -> &[Row] {
+        &self.rows
     }
 
     pub fn selected(&self) -> Option<&Item> {
-        self.items.get(self.selected)
+        self.rows.get(self.selected).map(|row| &row.item)
     }
 
     fn clamp(&mut self) {
-        self.selected = self.selected.min(self.items.len().saturating_sub(1));
+        self.selected = self.selected.min(self.rows.len().saturating_sub(1));
     }
 
-    /// First visible row for a window of `rows`: the selection never leaves it.
+    /// First visible row for a window of `rows`: the selection never leaves it,
+    /// and nothing has to be stored to keep it there.
     fn window(&self, rows: usize) -> usize {
         if rows == 0 || self.selected < rows {
             0
@@ -91,11 +114,8 @@ impl Component for Menu {
         }
         let rows = inner.height as usize;
         let start = self.window(rows);
-        for (row, item) in self.items.iter().skip(start).take(rows).enumerate() {
-            let index = start + row;
-            let selected = index == self.selected;
-            let accent = Style::default().fg(paint.theme.accent_color());
-            let plain = Style::default().fg(paint.theme.text_color());
+        for (row, data) in self.rows.iter().skip(start).take(rows).enumerate() {
+            let selected = start + row == self.selected;
             let y = inner.y + row as u16;
             if selected {
                 buf.set_style(
@@ -103,30 +123,26 @@ impl Component for Menu {
                     Style::default().bg(paint.theme.selected_color()),
                 );
             }
+            let plain = Style::default().fg(if selected {
+                paint.theme.accent_color()
+            } else {
+                paint.theme.text_color()
+            });
+            let marked = plain.add_modifier(Modifier::BOLD);
+
             let mut x = inner.x;
             let mut room = inner.width;
             if let Some(width) = self.icon_width {
-                // The glyph only, clipped to the column: padding it by
-                // characters would push a wide glyph past the column and shift
-                // the whole row.
-                ui::put(
-                    buf,
-                    x,
-                    y,
-                    width,
-                    item.icon.as_deref().unwrap_or(""),
-                    if selected { accent } else { plain },
-                );
-                x = x.saturating_add(width + 1);
+                let slot = ui::fit(data.item.icon.as_deref().unwrap_or(""), width);
+                ui::put(buf, x, y, width, &slot, plain);
+                x += width + 1;
                 room = room.saturating_sub(width + 1);
             }
             let marker = if selected { "› " } else { "  " };
-            let style = if selected {
-                accent.add_modifier(Modifier::BOLD)
-            } else {
-                plain
-            };
-            ui::put(buf, x, y, room, &format!("{marker}{}", item.display), style);
+            ui::put(buf, x, y, room, marker, plain);
+            x += ui::width(marker);
+            room = room.saturating_sub(ui::width(marker));
+            write_display(buf, x, y, room, data, marked, plain);
         }
     }
 
@@ -137,7 +153,7 @@ impl Component for Menu {
     fn update(&mut self, action: &Action) -> Reaction {
         match action {
             Action::Down => {
-                if self.selected + 1 < self.items.len() {
+                if self.selected + 1 < self.rows.len() {
                     self.selected += 1;
                 }
                 Reaction::Handled
@@ -153,4 +169,55 @@ impl Component for Menu {
             _ => Reaction::Ignored,
         }
     }
+}
+
+/// Write the display string, switching to the emphasised style on the characters
+/// the matcher reported. Positions are ascending, so one pass with a run buffer
+/// is enough.
+fn write_display(
+    buf: &mut Buffer,
+    mut x: u16,
+    y: u16,
+    room: u16,
+    row: &Row,
+    marked: Style,
+    plain: Style,
+) {
+    let mut left = room;
+    let mut run = String::new();
+    let mut run_hit = false;
+    let mut started = false;
+
+    for (index, ch) in row.item.display.chars().enumerate() {
+        if left == 0 {
+            break;
+        }
+        let hit = row.positions.binary_search(&index).is_ok();
+        if started && hit != run_hit {
+            x = flush(buf, x, y, &mut left, &mut run, run_hit, marked, plain);
+        }
+        run.push(ch);
+        run_hit = hit;
+        started = true;
+    }
+    if started {
+        flush(buf, x, y, &mut left, &mut run, run_hit, marked, plain);
+    }
+}
+
+fn flush(
+    buf: &mut Buffer,
+    x: u16,
+    y: u16,
+    left: &mut u16,
+    run: &mut String,
+    hit: bool,
+    marked: Style,
+    plain: Style,
+) -> u16 {
+    ui::put(buf, x, y, *left, run, if hit { marked } else { plain });
+    let used = ui::width(run);
+    *left = left.saturating_sub(used);
+    run.clear();
+    x.saturating_add(used)
 }

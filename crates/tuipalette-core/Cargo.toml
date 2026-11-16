@@ -9,8 +9,15 @@ rust-version.workspace = true
 [dev-dependencies]
 insta = "1"
 
+[features]
+default = ["nucleo"]
+# The fzf-compatible scorer. Off means the dependency-free substring matcher.
+nucleo = ["dep:nucleo-matcher"]
+
 [dependencies]
+nucleo-matcher = { version = "0.3", optional = true }
 ratatui-core.workspace = true
 ron.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+unicode-width = "0.2"

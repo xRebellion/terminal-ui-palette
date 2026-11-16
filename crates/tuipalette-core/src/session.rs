@@ -95,6 +95,27 @@ impl Session {
         &self.keymap
     }
 
+    /// What one pane would hand back, whether or not it holds focus.
+    pub fn value_of(&self, id: &str) -> Option<String> {
+        let index = *self.by_id.get(id)?;
+        self.components[index].value()
+    }
+
+    /// A pane's component by type.
+    pub fn pane<T: Component>(&self, id: &str) -> Option<&T> {
+        let index = *self.by_id.get(id)?;
+        let any: &dyn std::any::Any = &*self.components[index];
+        any.downcast_ref::<T>()
+    }
+
+    /// A pane's component by type — how the picker reaches the menu it fills.
+    /// `None` when the id is unknown or the component is something else.
+    pub fn pane_mut<T: Component>(&mut self, id: &str) -> Option<&mut T> {
+        let index = *self.by_id.get(id)?;
+        let any: &mut dyn std::any::Any = &mut *self.components[index];
+        any.downcast_mut::<T>()
+    }
+
     /// The focused pane's id, or `None` when nothing on screen takes focus.
     pub fn focus(&self) -> Option<&str> {
         let i = self.ring.get(self.slot?).copied()?;
@@ -108,19 +129,20 @@ impl Session {
     }
 
     /// Resolve a key for the focused pane, then either dispatch its bind or hand
-    /// the character to the focused component — typing works without a bind per
-    /// letter.
+    /// the key to the focused component — typing works without a bind per
+    /// letter, and so does editing, which is why Delete is here too.
     pub fn on_key(&mut self, key: Key) -> Outcome {
         let pane = self.focus().unwrap_or_default().to_owned();
         if let Some(action) = self.keymap.resolve(&pane, key).cloned() {
             return self.dispatch(action);
         }
-        if let KeyCode::Char(c) = key.code {
-            if !key.mods.ctrl && !key.mods.alt {
-                return self.dispatch(Action::Input(c));
-            }
+        match key.code {
+            KeyCode::Char(c) if !key.mods.ctrl && !key.mods.alt => self.dispatch(Action::Input(c)),
+            KeyCode::Backspace => self.dispatch(Action::Backspace),
+            // Delete needs a cursor to act on; until the query has one it is
+            // not an action the library has.
+            _ => Outcome::Continue,
         }
-        Outcome::Continue
     }
 
     pub fn dispatch(&mut self, action: Action) -> Outcome {

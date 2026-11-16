@@ -38,7 +38,7 @@ impl Component for InputLine {
             return;
         }
         let cursor = if paint.focused { "▏" } else { "" };
-        let shown = tail(&format!("{}{cursor}", self.value), inner.width as usize);
+        let shown = ui::tail(&format!("{}{cursor}", self.value), inner.width);
         ui::put(
             buf,
             inner.x,
@@ -69,15 +69,4 @@ impl Component for InputLine {
     fn value(&self) -> Option<String> {
         Some(self.value.clone())
     }
-}
-
-/// Keep the end of the text visible: a query is typed at its end, so the end is
-/// the part worth showing. Counted in characters until the icon work (15) makes
-/// cell width matter.
-fn tail(text: &str, width: usize) -> String {
-    let count = text.chars().count();
-    if count <= width {
-        return text.to_owned();
-    }
-    text.chars().skip(count - width).collect()
 }

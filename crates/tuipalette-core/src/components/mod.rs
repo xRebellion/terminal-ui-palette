@@ -11,7 +11,7 @@ pub mod status;
 pub mod text;
 
 pub use input::InputLine;
-pub use menu::{Item, Menu};
+pub use menu::{Item, Menu, Row};
 pub use spacer::Spacer;
 pub use status::StatusLine;
 pub use text::TextPane;

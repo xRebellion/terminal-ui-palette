@@ -1,0 +1,12 @@
+---
+source: crates/tuipalette-core/tests/source.rs
+expression: "ui::screen(&buf)"
+---
+╭─ search ───────────────────╮
+│fir                         │
+╰────────────────────────────╯
+╭─ matches ──────────────────╮
+│› firefox                   │
+│  firefly                   │
+│                            │
+╰────────────────────────────╯

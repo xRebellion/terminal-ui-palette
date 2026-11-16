@@ -5,6 +5,8 @@
 //! can be tested without a terminal. Extending the library means writing one of
 //! these and recompiling — there is no plugin ABI (docs/PLAN.md, D5).
 
+use std::any::Any;
+
 use crate::action::Action;
 use crate::spec::Theme;
 use crate::{Buffer, Rect};
@@ -32,7 +34,10 @@ pub struct Paint<'a> {
 }
 
 /// A pane's behaviour.
-pub trait Component {
+///
+/// `Any` is a supertrait so the picker can reach a built-in by type
+/// (`Session::pane_mut::<Menu>`); it changes nothing for an implementor.
+pub trait Component: Any {
     /// Must match a pane id in the spec.
     fn id(&self) -> &str;
 
