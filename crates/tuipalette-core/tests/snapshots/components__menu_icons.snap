@@ -4,7 +4,7 @@ expression: "painted(&menu, 28, 6, true)"
 ---
 ╭─ apps ───────────────────╮
 │ff  › firefox             │
-│      kitty               │
+│·     kitty               │
 │>_    code                │
 │                          │
 ╰──────────────────────────╯

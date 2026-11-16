@@ -133,7 +133,14 @@ impl Component for Menu {
             let mut x = inner.x;
             let mut room = inner.width;
             if let Some(width) = self.icon_width {
-                let slot = ui::fit(data.item.icon.as_deref().unwrap_or(""), width);
+                // An item without a glyph still gets a slot: the theme's
+                // placeholder keeps the text column where the other rows put it.
+                let glyph = data.item.icon.as_deref().filter(|icon| !icon.is_empty());
+                let mut slot = ui::fit(glyph.unwrap_or(&paint.theme.icon_placeholder), width);
+                if glyph.is_some() && slot.trim().is_empty() {
+                    // Too wide for the slot: a half glyph would be worse than none.
+                    slot = ui::fit(&paint.theme.icon_placeholder, width);
+                }
                 ui::put(buf, x, y, width, &slot, plain);
                 x += width + 1;
                 room = room.saturating_sub(width + 1);

@@ -1,0 +1,24 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: matrix
+---
+-- native --
+╭─ apps ───────────────╮
+│◆   › firefox         │
+│·     kitty           │
+╰──────────────────────╯
+-- wide --
+╭─ apps ───────────────╮
+│🎉   › firefox         │
+│·     kitty           │
+╰──────────────────────╯
+-- absent --
+╭─ apps ───────────────╮
+│·   › firefox         │
+│·     kitty           │
+╰──────────────────────╯
+-- off --
+╭─ apps ───────────────╮
+│› firefox             │
+│  kitty               │
+╰──────────────────────╯

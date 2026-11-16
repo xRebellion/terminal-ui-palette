@@ -6,7 +6,8 @@
 
 use crate::spec::Theme;
 use crate::{Buffer, Rect, Style};
-use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+use unicode_segmentation::UnicodeSegmentation;
+use unicode_width::UnicodeWidthStr;
 
 /// Draw a rounded frame with a title and return the area inside it.
 ///
@@ -58,16 +59,20 @@ pub fn width(text: &str) -> u16 {
 }
 
 /// Clip `text` to `width` cells and pad it with spaces to exactly that many.
+///
+/// Measures per **grapheme cluster**, not per `char`: an emoji built from a ZWJ
+/// sequence is one cluster two cells wide, and cutting it between its parts would
+/// leave half a glyph whose real width the terminal decides, not us.
 pub fn fit(text: &str, width: u16) -> String {
     let mut out = String::new();
     let mut used = 0u16;
-    for ch in text.chars() {
-        let w = ch.width().unwrap_or(0) as u16;
+    for cluster in text.graphemes(true) {
+        let w = u16::try_from(cluster.width()).unwrap_or(u16::MAX);
         if used + w > width {
             break;
         }
         used += w;
-        out.push(ch);
+        out.push_str(cluster);
     }
     while used < width {
         out.push(' ');
@@ -85,13 +90,13 @@ pub fn tail(text: &str, width: u16) -> String {
     }
     let mut drop = total - width;
     let mut out = String::new();
-    for ch in text.chars() {
-        let w = ch.width().unwrap_or(0) as u16;
+    for cluster in text.graphemes(true) {
+        let w = u16::try_from(cluster.width()).unwrap_or(u16::MAX);
         if drop >= w {
             drop -= w;
             continue;
         }
-        out.push(ch);
+        out.push_str(cluster);
     }
     out
 }

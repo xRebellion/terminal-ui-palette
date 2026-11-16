@@ -212,10 +212,18 @@ pub struct Theme {
     /// Borders that do not have focus, and hints.
     #[serde(rename = "dim", default = "default_dim")]
     pub dim: String,
+    /// Drawn in an icon slot the provider left empty, so a missing glyph
+    /// degrades the picture instead of shifting the text column.
+    #[serde(rename = "icon_placeholder", default = "default_icon_placeholder")]
+    pub icon_placeholder: String,
 }
 
 fn default_dim() -> String {
     "#6c7086".to_owned()
+}
+
+fn default_icon_placeholder() -> String {
+    "\u{b7}".to_owned()
 }
 
 impl Theme {
@@ -234,6 +242,7 @@ impl Default for Theme {
             selected_bg: "#313244".to_owned(),
             text: "#cdd6f4".to_owned(),
             dim: default_dim(),
+            icon_placeholder: default_icon_placeholder(),
         }
     }
 }

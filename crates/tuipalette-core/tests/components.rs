@@ -301,3 +301,79 @@ fn focus_moves_between_the_query_and_the_menu_only() {
     s.dispatch(Action::FocusNext);
     assert_eq!(s.focus(), Some("query"), "and the ring wraps");
 }
+
+/// The four ways an icon slot can be filled, rendered side by side. The text
+/// column must not move: a native-width glyph, a double-width emoji, an absent
+/// glyph (the theme's placeholder steps in) and no slot at all.
+#[test]
+fn the_icon_slot_keeps_the_text_column_in_all_four_cases() {
+    let cases: [(&str, Option<&str>, Option<u8>); 4] = [
+        ("native", Some("◆"), Some(3)),
+        ("wide", Some("🎉"), Some(3)),
+        ("absent", None, Some(3)),
+        ("off", Some("◆"), None),
+    ];
+    let mut matrix = String::new();
+    let mut columns = Vec::new();
+    for (name, icon, icon_width) in cases {
+        let pane = &spec(&format!(
+            "(window: (title: \"t\"), layout: (pane: \"m\"), panes: [(id: \"m\", kind: Menu, title: \"apps\"{})])",
+            icon_width.map(|w| format!(", icon_width: {w}")).unwrap_or_default()
+        ))
+        .panes[0];
+        let mut menu = Menu::new(pane);
+        menu.set_items(vec![
+            Item { display: "firefox".to_owned(), value: "firefox".to_owned(), icon: icon.map(str::to_owned) },
+            Item::line("kitty"),
+        ]);
+        let area = Rect::new(0, 0, 24, 4);
+        let mut buf = Buffer::empty(area);
+        let theme = Theme::default();
+        menu.render(
+            &Paint { area, focused: true, theme: &theme },
+            &mut buf,
+        );
+        let text = ui::screen(&buf);
+        // Where "firefox" starts is the column the layout has to keep fixed.
+        // Measured on buffer cells, not on the extracted text: the cell after
+        // a double-width glyph holds no symbol of its own, and `screen` turns
+        // that continuation cell into a space.
+        let column = (0..area.width)
+            .find(|&x| buf.cell((x, 1)).is_some_and(|cell| cell.symbol() == "f"))
+            .expect("the first row carries the display text") as i32;
+        columns.push((name, column, icon_width));
+        matrix.push_str(&format!("-- {name} --\n{text}\n"));
+    }
+    let with_slot: Vec<_> = columns.iter().filter(|(_, _, w)| w.is_some()).collect();
+    for (name, column, _) in &with_slot {
+        assert_eq!(
+            *column, with_slot[0].1,
+            "case {name} moved the text column"
+        );
+    }
+    let off = columns.iter().find(|(name, _, _)| *name == "off").unwrap();
+    assert_eq!(off.1, with_slot[0].1 - 4, "--no-icons should drop the slot and its gap");
+    insta::assert_snapshot!("icon_matrix", matrix);
+}
+
+/// A glyph wider than its slot is dropped rather than cut in half — the theme's
+/// placeholder takes the cell, so the row stays legible and aligned.
+#[test]
+fn a_glyph_too_wide_for_its_slot_falls_back_to_the_placeholder() {
+    let pane = &spec(
+        r##"(window: (title: "t"), layout: (pane: "m"), panes: [(id: "m", kind: Menu, title: "apps", icon_width: 1)])"##,
+    )
+    .panes[0];
+    let mut menu = Menu::new(pane);
+    menu.set_items(vec![Item {
+        display: "firefox".to_owned(),
+        value: "firefox".to_owned(),
+        icon: Some("🎉".to_owned()),
+    }]);
+    let area = Rect::new(0, 0, 20, 3);
+    let mut buf = Buffer::empty(area);
+    let theme = Theme::default();
+    menu.render(&Paint { area, focused: true, theme: &theme }, &mut buf);
+    let cell = buf.cell((1, 1)).map(|c| c.symbol().to_owned()).unwrap_or_default();
+    assert_eq!(cell, theme.icon_placeholder, "a glyph that cannot fit must not be split");
+}

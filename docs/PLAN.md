@@ -14,12 +14,12 @@ Last updated: 2026-11-16
   - 06 — Streaming source, matcher, match highlighting · done 2026-11-16
   - 07 — CLI contract: dmenu-compatible stdin/stdout, exit codes · done 2026-11-16
   - 08 — Host adapters: floating window and inline · done 2026-11-16
-  - 12 — Cold-start probe: is 100 ms reachable at all?
+  - 12 — Cold-start probe: is 100 ms reachable at all? · done 2026-11-16
   - 09 — Latency verdict and the daemon decision
   - 10 — Migrate one real picker end to end
   - 13 — Ship a rofi-like layout
   - 14 — Rofi parity inventory and empirical check
-  - 15 — Icon slots and their fallback
+  - 15 — Icon slots and their fallback · done 2026-11-16
   - 11 — Spec reference and component guide
 - Decisions
 - Risks
@@ -94,7 +94,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 07
 - detail: `docs/specs/08-hosts.md` (floating verified; the inline-in-kitty half is outstanding)
 
-### 12 — Cold-start probe: is 100 ms reachable at all?
+### 12 — Cold-start probe: is 100 ms reachable at all? · done 2026-11-16
 - A throwaway measurement, before the picker does anything useful: exec of the binary to first flushed frame, with the phases reported separately (spec parse, terminal init, first draw) and terminal spawn excluded — spawn is the host's cost, not ours — checkable by a phase table in the item's spec and a yes/no on whether the 100 ms budget survives, all of it driven by one env-gated timing switch inside the binary so it is not a separate harness.
 - after: 02
 - detail: `docs/specs/12-cold-start.md`
@@ -119,7 +119,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 10, 13
 - detail: `docs/specs/14-parity.md`
 
-### 15 — Icon slots and their fallback
+### 15 — Icon slots and their fallback · done 2026-11-16
 - An icon is one slot of declared width in the item template, filled by the glyph the provider sends — lookup belongs to the provider (D12), so 15 is a renderer and nothing else; width is computed per grapheme cluster (`unicode-width`), and anything that does not fit or cannot be assumed renderable is replaced by a placeholder from the theme, so a missing Nerd Font degrades the picture rather than the layout — checkable by a snapshot matrix of native-width glyph, double-width emoji, absent glyph, and `--no-icons`, all four keeping the text column aligned.
 - after: 05
 - detail: `docs/specs/15-icons.md`
