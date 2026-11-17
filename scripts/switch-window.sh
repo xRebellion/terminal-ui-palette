@@ -13,10 +13,13 @@ adapter=${TUIPALETTE_ADAPTER:-$here/tuipalette-floating.sh}
 spec=${WINDOW_SPEC:-$here/../layouts/dmenu.ron}
 
 rows() {
+  # .hidden is absent on some clients, so ask for "not true" rather than
+  # "== false". The class is the fallback title: a window with no title
+  # (a splash, a scratchpad) still has to be choosable.
   hyprctl clients -j 2>/dev/null | jq -r '
     .[]
-    | select(.mapped and .hidden == false)
-    | [ .title, .address ]
+    | select(.mapped and (.hidden != true))
+    | [ .title, .address, .class ]
     | @tsv
   ' | awk -F'\t' '
     { title = ($1 == "" ? $3 : $1); printf "%s\t%s\n", title, $2 }
@@ -28,11 +31,19 @@ if [ "${1:-}" = "--list" ]; then
   exit 0
 fi
 
-choice=$(rows | "$adapter" "$spec" --prompt 'window' --no-sort --message 'enter focuses, esc cancels' cat - ) || exit 0
+choice=$(rows | "$adapter" "$spec" --prompt 'window' --no-sort cat - ) || exit 0
 [ -n "$choice" ] || exit 0
 address=${choice##*$'\t'}
 if [ "${WINDOW_PRINT_ONLY:-}" = 1 ]; then
   printf '%s\n' "$address"
   exit 0
 fi
-hyprctl dispatch "hl.dsp.focus({ window = { address = '$address' } })" >/dev/null
+# The dispatcher takes a window object or a *string* selector — a table of
+# fields like { address = … } is rejected with "expected a window object or
+# selector", and hyprctl still exits 0, so the answer is checked, not the
+# status. This is why the first version "worked" and did nothing.
+answer=$(hyprctl dispatch "hl.dsp.focus({ window = 'address:$address' })" 2>&1)
+case $answer in
+  ok*) ;;
+  *) echo "switch-window: focus failed: $answer" >&2; exit 1 ;;
+esac

@@ -29,7 +29,7 @@ if [ "${1:-}" = "--list" ]; then
 fi
 
 choice=$(commands | "$here/usage.sh" order 1 \
-  | "$adapter" "$spec" --prompt 'run' --message 'enter runs, esc cancels' --accept-query cat - ) || exit 0
+  | "$adapter" "$spec" --prompt 'run' --accept-query cat - ) || exit 0
 [ -n "$choice" ] || exit 0
 "$here/usage.sh" record "$choice"
 if [ "${RUN_PRINT_ONLY:-}" = 1 ]; then

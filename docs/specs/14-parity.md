@@ -44,7 +44,13 @@ $ WINDOW_PRINT_ONLY=1 … scripts/switch-window.sh   # with a fake answer carryi
 0x557812ace770
 ```
 
-The row is `title\taddress`, so the picker hands back the address alone while the eye reads the title — a title with spaces cannot break the choice. The focus itself is one dispatch: `hl.dsp.focus({ window = { address = … } })`.
+The row is `title\taddress`, so the picker hands back the address alone while the eye reads the title — a title with spaces cannot break the choice. The focus itself is one dispatch, with the address as a **string selector**:
+
+```
+hyprctl dispatch "hl.dsp.focus({ window = 'address:0x5578134a1b10' })"   → ok
+```
+
+The first version passed a table — `{ window = { address = … } }` — which the dispatcher rejects with "expected a window object or selector" (`LuaBindingsInternal.cpp`, `windowSelectorFromLuaSelectorOrObject`), and `hyprctl` still exits 0, so the failure was silent. `switch-window.sh` now checks the answer text instead of the exit status.
 
 **5. wifi** — `tuipalette --check --spec layouts/wifi.ron` → `ok — 3 panes, 2 bindings`, and the fake-list run from item 11: typing `cafe` + Enter → `cafe`; `-auto-select` needs nothing because the first row starts selected.
 
