@@ -177,6 +177,20 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - checkable: `docs/specs/21-mouse.md`; `scripts/pty-check.py` driving SGR mouse sequences (`ESC[<0;x;yM`/`m`) into a real run of `layouts/rofi-like.ron`: hover moves the highlight, click accepts the row under the pointer, wheel scrolls a 200-row list.
 - after: 19 — the rects and the pane dispatch it needs are what 19 touched last
 - detail: `docs/specs/21-mouse.md`
+### 22 — A scrollbar, as a pane option
+- fzf has `--scrollbar[=C1[C2]]` (off by default, which is why the original capture had none) and draws it in the list's last column. Ours has nothing: a long list gives no sense of where you are or how much is left.
+- Proposal: `scrollbar: true` on a `Menu` (default `false`, so no existing document changes shape), drawn in the pane's rightmost column, one cell taken from the text, shown only when the rows exceed the visible window — with a proportional thumb, so 12 rows in a 200-row list is a short bar in the right place. `Theme` gains `scrollbar` (thumb) and `scrollbar_bg`; the colours are tokens like the rest.
+- `ratatui 0.30` has `Scrollbar`/`ScrollbarState` in `ratatui-widgets`, which render into a plain `Buffer`, so this stays inside D1. The menu already computes the first visible row (`Menu::window`); the thumb is that number over the row count.
+- checkable: a snapshot of five rows in a three-row window (thumb proportional, no bar when everything fits), a test that the thumb tracks the selection and not just the offset, and `layouts/rofi-like.ron` + `layouts/clipboard.ron` still `--check` clean with the option off.
+- after: 19 — the pane options it extends
+- detail: `docs/specs/22-scrollbar.md`
+
+### 23 — The item count (`shown/total`)
+- fzf's info line prints `49/49` — matched rows over everything the provider sent — and it is the one piece of chrome the clipboard layout still misses (`docs/specs/19-clipboard.md`: "no counter"). Right now nothing in the picker knows the totals, because the picker keeps them and the panes do not.
+- Proposal: `kind: Counter`, whose text the picker writes after every refilter — `3/49` by default, with `format: "{shown} of {total}"` if a document wants words, and `align: Right` because that is where fzf puts it. It is the same mechanism as `Detail` (the picker owns a value a pane displays), so it costs a `set_text` the picker already knows how to call.
+- checkable: a snapshot with a typed query (`2/4`), a test that the number follows both typing and streaming rows, and the clipboard layout's header row showing it beside "Clipboard History".
+- after: 19 — it reuses the pane the picker writes into
+- detail: `docs/specs/23-counter.md`
 ## Decisions
 Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the digest of what still binds outstanding work.
 - D1 — Render stack: ratatui 0.30 + crossterm, confined to `tuipalette-tui`; components render into `&mut Buffer` and never touch `Frame`, so they stay testable headless and backend-agnostic (binds all)

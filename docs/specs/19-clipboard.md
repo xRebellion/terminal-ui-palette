@@ -56,3 +56,16 @@ decision, not the library's.
     tuipalette --spec layouts/clipboard.ron --check
     scripts/clipboard.sh --list | wc -l          # 49
     scripts/clipboard.sh                         # open, filter, Enter → wl-copy holds the entry
+
+## Shelved (2026-11-16, same day)
+
+The picker is **not** wired to a keybind, and `SUPER+Shift+V` still runs
+`cliphist-fzf.fish` (D19). The code stays and stays tested, because it is what
+proved the schema — a preview that follows a selection, a frameless pane and a
+single window frame are all things the other pickers can use.
+
+What a user would lose today by switching: images (the original renders them
+with `kitty +kitten icat`, plan item 20), the mouse (21), a scrollbar (22) and
+the `49/49` count (23). Nothing else in the table above is a regression — the
+list, the preview, the paste-after-focus and the shape all match.
+

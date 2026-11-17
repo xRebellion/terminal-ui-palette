@@ -15,7 +15,7 @@ Last updated: 2026-11-16
 - The three rofi *modes* have equivalents, verified: `run` (`scripts/run-command.sh`, 4669 candidates, free text accepted), `drun` (`scripts/launch-apps.sh`) and `window` (`scripts/switch-window.sh`, address returned); `calc` and `-password` are benched with reasons in `docs/specs/14-parity.md`
 - All four rofi keybinds are rewired: `SUPER+R` → `scripts/run-command.sh`, `SUPER+Space` → `scripts/launch-apps.sh`, `SUPER+Shift+,` → `scripts/switch-window.sh`; `XF86Calculator` stays on rofi (benched)
 - drun matches Name, GenericName, Exec, Categories and Keywords while showing the Name (rofi parity, D17); `seahorse` finds "Passwords and Keys"
-- The clipboard picker migrated from fzf: rows from cliphist, the selected entry previewed through `Item.detail` + `kind: Detail`, and a paste after focus returns — `scripts/clipboard.sh`, layout measured against the original (`docs/specs/19-clipboard.md`)
+- The clipboard picker migrated from fzf and then **shelved**: rows from cliphist, the selected entry previewed through `Item.detail` + `kind: Detail`, a paste after focus returns, the layout measured against the original — but `SUPER+Shift+V` still runs the fish script until 20–23 land (D19, `docs/specs/19-clipboard.md`)
 - The app list opens in 20 ms (was 1276 ms) and both launchers remember what was used (`scripts/usage.sh`)
 - The floating host survives a real keybind: focused window, typed query, Escape closes it with no dead window (four bugs fixed — `docs/specs/08-hosts.md`)
 - The picker matches rofi on the same keybind — same card, same entries, compared on screen; whole path 117–132 ms against rofi's 42–45 ms, the delta being the terminal's spawn
