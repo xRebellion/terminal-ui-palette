@@ -11,12 +11,19 @@ use crate::spec::Pane;
 use crate::ui;
 use crate::{Buffer, Modifier, Rect, Style};
 
-/// One row: what is shown, what comes back, and the glyph in front of it.
+/// One row: what is shown, what comes back, the glyph in front of it, and
+/// text that is searchable but never drawn.
+///
+/// `search` is how a provider lends the matcher words the row should be
+/// found by but not shown with — rofi's drun matches Name, GenericName,
+/// Exec, Categories and Keywords while showing only the Name, and this is
+/// the same split (docs/spec-reference.md, item protocol).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
     pub display: String,
     pub value: String,
     pub icon: Option<String>,
+    pub search: Option<String>,
 }
 
 impl Item {
@@ -27,6 +34,7 @@ impl Item {
             display: text.clone(),
             value: text,
             icon: None,
+            search: None,
         }
     }
 }

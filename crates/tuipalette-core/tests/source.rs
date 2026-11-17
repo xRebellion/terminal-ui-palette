@@ -31,9 +31,25 @@ fn a_line_carries_display_value_and_icon() {
 
     let remainder = parse_line("a\tb\tc\td").expect("a line");
     assert_eq!(remainder.value, "b", "the value is the second field only");
-    // The icon is the rest of the line, sanitised like the display: it is one
-    // cell slot, and a control character in it would break the column.
-    assert_eq!(remainder.icon.as_deref(), Some("c d"), "the icon takes the rest");
+    // The icon is one field, sanitised like the display: it is one cell slot,
+    // and a control character in it would break the column.
+    assert_eq!(remainder.icon.as_deref(), Some("c"));
+    assert_eq!(remainder.search.as_deref(), Some("d"), "the fourth field is search text");
+}
+
+#[test]
+fn a_row_can_be_found_by_words_it_does_not_show() {
+    // rofi's drun matches Name, GenericName, Exec, Categories and Keywords
+    // while showing the Name; the fourth field is where those extra words go.
+    let row = parse_line("Passwords and Keys\tseahorse\t\tGNOME Security keyring seahorse")
+        .expect("a line");
+    assert_eq!(row.display, "Passwords and Keys");
+    assert_eq!(row.value, "seahorse");
+    assert_eq!(row.icon, None, "an empty third field is no icon");
+    assert_eq!(row.search.as_deref(), Some("GNOME Security keyring seahorse"));
+
+    let plain = parse_line("firefox").expect("a line");
+    assert_eq!(plain.search, None, "three fields stay three fields");
 }
 
 #[test]
@@ -228,6 +244,32 @@ fn no_sort_keeps_the_provider_order() {
     unsorted.on_key(Key::new(KeyCode::Char('m'), Mods::NONE));
     let filtered: Vec<String> = unsorted.rows().into_iter().map(|row| row.item.display).collect();
     assert_eq!(filtered, vec!["mike"], "filtering still applies");
+}
+
+/// A row can be found by words it does not show — rofi's drun finds "Passwords
+/// and Keys" by its `seahorse` executable. Such a hit is real and ranks below
+/// every display match, and it has no highlight: positions index the display.
+#[test]
+fn a_hit_on_hidden_words_is_a_real_but_shallower_match() {
+    let mut picker = picker(PICKER);
+    picker.push(vec![
+        Item {
+            display: "Passwords and Keys".to_owned(),
+            value: "seahorse".to_owned(),
+            icon: None,
+            search: Some("GNOME Security keyring seahorse".to_owned()),
+        },
+        Item::line("SeaMonkey"),
+    ]);
+    for ch in "sea".chars() {
+        picker.on_key(Key::new(KeyCode::Char(ch), Mods::NONE));
+    }
+    let rows = picker.rows();
+    let names: Vec<&str> = rows.iter().map(|row| row.item.display.as_str()).collect();
+    assert_eq!(names, vec!["SeaMonkey", "Passwords and Keys"], "a display match leads");
+    assert!(!rows[0].positions.is_empty(), "the display hit is highlighted");
+    assert!(rows[1].positions.is_empty(), "a hidden hit has nothing to highlight");
+    assert_eq!(rows[1].item.value, "seahorse", "the value still comes back");
 }
 
 /// `--accept-query`: rofi's custom input. Enter on an empty list answers with

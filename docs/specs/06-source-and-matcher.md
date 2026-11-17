@@ -62,3 +62,11 @@ The last one is the plan's manual check: results were on screen and selectable w
 ## Not in this item
 
 A cursor inside the query (left/right, delete, home/end), so editing is append-and-backspace only. Enter with no matches does nothing rather than accepting the typed text; `--print-query` is how a caller gets that text today. The icon column is filled (protocol) but not yet width-centred, which is item 15.
+
+## Hidden search text (2026-11-16, item 14 follow-up)
+
+rofi's drun matches five fields — Name, GenericName, Exec, Categories, Keywords — while displaying only the Name (`source/modes/drun.c`, `matching_entry_fields` on the `next` branch, which is what this machine runs as 2.0.0). Typing `seahorse` there finds "Passwords and Keys" because `Exec=seahorse %u` and `Keywords=…;seahorse;`.
+
+Our protocol grew a fourth field for exactly that: `display<TAB>value<TAB>icon<TAB>search`. `source::parse_line` keeps it, `Picker::refilter` falls back to it (and to the value) when the display does not match, scores such a hit at a constant 1 — below every display match — and gives it no highlight, since positions index the display. `scripts/apps.sh` fills it with GenericName, Categories, Keywords and the Exec line.
+
+Verified in the real window: `seahorse` leads with "Passwords and Keys"; `keyring` leads with it too, followed by apps whose Keywords contain the word (Ark, KWalletManager), which is rofi's behaviour.

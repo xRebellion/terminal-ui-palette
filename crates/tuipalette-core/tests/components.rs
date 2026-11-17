@@ -145,13 +145,15 @@ fn a_menu_reserves_an_icon_column_when_the_pane_asks() {
             display: "firefox".to_owned(),
             value: "firefox".to_owned(),
             icon: Some("ff".to_owned()),
-        },
+            search: None,
+          },
         Item::line("kitty"),
         Item {
             display: "code".to_owned(),
             value: "code".to_owned(),
             icon: Some(">_".to_owned()),
-        },
+            search: None,
+          },
     ]);
     insta::assert_snapshot!("menu_icons", painted(&menu, 28, 6, true));
 }
@@ -175,7 +177,8 @@ fn a_wide_icon_does_not_move_the_columns() {
         display: "firefox".to_owned(),
         value: "firefox".to_owned(),
         icon: Some("🌐".to_owned()),
-    }]);
+        search: None,
+      }]);
     let area = Rect::new(0, 0, 24, 3);
     let mut buf = Buffer::empty(area);
     menu.render(
@@ -323,7 +326,7 @@ fn the_icon_slot_keeps_the_text_column_in_all_four_cases() {
         .panes[0];
         let mut menu = Menu::new(pane);
         menu.set_items(vec![
-            Item { display: "firefox".to_owned(), value: "firefox".to_owned(), icon: icon.map(str::to_owned) },
+            Item { display: "firefox".to_owned(), value: "firefox".to_owned(), icon: icon.map(str::to_owned), search: None },
             Item::line("kitty"),
         ]);
         let area = Rect::new(0, 0, 24, 4);
@@ -369,7 +372,8 @@ fn a_glyph_too_wide_for_its_slot_falls_back_to_the_placeholder() {
         display: "firefox".to_owned(),
         value: "firefox".to_owned(),
         icon: Some("🎉".to_owned()),
-    }]);
+        search: None,
+      }]);
     let area = Rect::new(0, 0, 20, 3);
     let mut buf = Buffer::empty(area);
     let theme = Theme::default();

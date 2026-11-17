@@ -144,17 +144,22 @@ Built-in defaults (present even when the document says nothing):
 
 ## Items on stdin
 
-Default protocol, one item per line, up to three TAB-separated fields:
+Default protocol, one item per line, up to four TAB-separated fields:
 
 | field | required | notes |
 |---|---|---|
 | display | yes | what the row shows; control characters become spaces |
 | value | no | what `Accept` returns, byte for byte; defaults to the display |
-| icon | no | the glyph for the icon slot; everything after the second tab |
+| icon | no | the glyph for the icon slot; the third field |
+| search | no | text the matcher sees and the row never shows; the fourth field |
 
-A line without a tab is both display and value, which is what makes `printf 'a\nb\n' | tuipalette` a dmenu.
+A line without a tab is both display and value, which is what makes `printf 'a\nb\n' | tuipalette` a dmenu. An empty field is an absent one, so `name<TAB>exec<TAB><TAB>words` has no icon and searchable words.
 
-`--in json` reads one object per line instead: `{"display": "…", "value": "…", "icon": "…"}`, same rules.
+The search field is how a provider lends the matcher words the row should be found by but not drawn with. rofi's drun does the same: it matches Name, GenericName, Exec, Categories and Keywords while showing only the Name, which is why typing `seahorse` there finds "Passwords and Keys". `scripts/apps.sh` emits those five fields in this slot.
+
+Ranking: a row matching on its display is scored by the matcher and its characters are highlighted. A row found only through its value or search text is a real hit, keeps arrival order among its peers (so a usage-ordered list stays usage-ordered), and is never highlighted, because positions index the display. Both kinds rank below every display match.
+
+`--in json` reads one object per line instead: `{"display": "…", "value": "…", "icon": "…", "search": "…"}`, same rules.
 
 Items are read on a thread as they arrive, so a slow provider fills the list progressively rather than holding the first frame back.
 

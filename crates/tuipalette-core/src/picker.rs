@@ -201,13 +201,31 @@ impl Picker {
             .iter()
             .enumerate()
             .filter_map(|(index, item)| {
-                let hit = self.matcher.score(&item.display)?;
+                let (score, positions) = match self.matcher.score(&item.display) {
+                    Some(hit) => (hit.score, hit.positions),
+                    None => {
+                        // The row is found by words it does not show (its value,
+                        // or the provider's search text). It is a real hit, but
+                        // a shallower one than any display match, and there is
+                        // nothing to highlight: positions index the display.
+                        let value = (item.value != item.display)
+                            .then(|| self.matcher.score(&item.value))
+                            .flatten();
+                        let found = value.or_else(|| {
+                            item.search
+                                .as_deref()
+                                .and_then(|search| self.matcher.score(search))
+                        });
+                        found?;
+                        (HIDDEN_MATCH, Vec::new())
+                    }
+                };
                 Some((
-                    hit.score,
+                    score,
                     index,
                     Row {
                         item: item.clone(),
-                        positions: hit.positions,
+                        positions,
                     },
                 ))
             })
@@ -221,6 +239,10 @@ impl Picker {
         }
     }
 }
+
+/// What a hit on a word the row does not show is worth: above nothing, below
+/// every display match, so those rows sort with the rest but after them.
+const HIDDEN_MATCH: u32 = 1;
 
 fn first_of_kind(spec: &UiSpec, kind: Kind) -> Option<String> {
     spec.panes
