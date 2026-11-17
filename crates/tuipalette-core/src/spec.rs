@@ -175,6 +175,23 @@ impl UiSpec {
                     format!("duplicate pane id `{}`", pane.id),
                 ));
             }
+            if let Some(from) = &pane.from {
+                match self.panes.iter().find(|other| &other.id == from) {
+                    Some(other) if other.kind == Kind::Menu => {}
+                    Some(_) => {
+                        return Err(SpecError::at_path(
+                            format!("panes[{i}].from"),
+                            format!("`{from}` is not a menu; a detail pane follows a Menu"),
+                        ));
+                    }
+                    None => {
+                        return Err(SpecError::at_path(
+                            format!("panes[{i}].from"),
+                            format!("no pane has the id `{from}`"),
+                        ));
+                    }
+                }
+            }
             if pane.icon_width == Some(0) {
                 return Err(SpecError::at_path(
                     format!("panes[{i}].icon_width"),
@@ -198,6 +215,11 @@ impl UiSpec {
 pub struct Window {
     #[serde(rename = "title", default)]
     pub title: String,
+    /// Draw one frame around the whole picker instead of one per pane —
+    /// fzf's `--border`. Panes inside then usually set `frame: false` too,
+    /// which is how a single-boxed, divided layout is written.
+    #[serde(rename = "frame", default)]
+    pub frame: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -288,6 +310,17 @@ pub struct Pane {
     pub icon_width: Option<u8>,
     #[serde(rename = "keys", default)]
     pub keys: BTreeMap<String, Option<Action>>,
+    /// For `Detail`: the `Menu` pane whose selection it follows. `None`
+    /// means the document's first menu.
+    #[serde(rename = "from", default)]
+    pub from: Option<String>,
+    /// `false` draws the pane's content without the box around it.
+    #[serde(rename = "frame", default = "default_true")]
+    pub frame: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
@@ -305,6 +338,9 @@ pub enum Kind {
     /// Draws nothing; holds its cells so a layout can push panes apart.
     #[serde(rename = "Spacer")]
     Spacer,
+    /// The selected row's `detail` text: a preview that follows the menu.
+    #[serde(rename = "Detail")]
+    Detail,
 }
 
 /// One node of the layout tree: either a leaf that names a pane, or a split

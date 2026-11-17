@@ -1,11 +1,14 @@
 //! Where items come from: lines on stdin, read as they arrive.
 //!
-//! The protocol is one line per item, up to four TAB-separated fields —
-//! `display`, `value`, `icon`, `search` — with trailing fields optional. A line
-//! with no tab is its own value, which is what makes `printf 'a\nb\n' |
-//! tuipalette` a dmenu (docs/PLAN.md, D12). The fourth field is matched but
-//! never drawn: rofi's drun finds "Passwords and Keys" by its `seahorse`
-//! executable, and this is where such words belong.
+//! The protocol is one line per item, up to five TAB-separated fields —
+//! `display`, `value`, `icon`, `search`, `detail` — with trailing fields
+//! optional. A line with no tab is its own value, which is what makes
+//! `printf 'a\nb\n' | tuipalette` a dmenu (docs/PLAN.md, D12). The fourth
+//! field is matched but never drawn: rofi's drun finds "Passwords and Keys"
+//! by its `seahorse` executable, and this is where such words belong. The
+//! fifth is shown by a `Detail` pane while the row is selected, and it is
+//! one line here — a multi-line preview needs `--in json`, where the
+//! newline is escaped instead of ending the item (D16).
 
 use std::io::{BufRead, BufReader};
 use std::sync::mpsc::{self, Receiver};
@@ -16,18 +19,19 @@ use crate::components::Item;
 ///
 /// The display is sanitised — a control character becomes a space, because a
 /// menu row is one row — while the value is kept byte for byte. The icon takes
-/// whatever is left after the second tab (D15), and the search text whatever
-/// is left after the third.
+/// the third field (D15), the search text the fourth, and the detail text the
+/// fifth; a field left empty is an absent one.
 pub fn parse_line(line: &str) -> Option<Item> {
     let line = line.strip_suffix('\r').unwrap_or(line);
     if line.is_empty() {
         return None;
     }
-    let mut fields = line.splitn(4, '\t');
+    let mut fields = line.splitn(5, '\t');
     let display = sanitise(fields.next().unwrap_or_default());
     let value = fields.next();
     let icon = fields.next();
     let search = fields.next();
+    let detail = fields.next();
     let display = match (display.is_empty(), value) {
         (true, Some(value)) if !value.is_empty() => sanitise(value),
         _ => display,
@@ -41,11 +45,13 @@ pub fn parse_line(line: &str) -> Option<Item> {
     }
     let icon = icon.filter(|icon| !icon.is_empty()).map(sanitise);
     let search = search.filter(|search| !search.is_empty()).map(sanitise);
+    let detail = detail.filter(|detail| !detail.is_empty()).map(sanitise);
     Some(Item {
         display,
         value,
         icon,
         search,
+        detail,
     })
 }
 
@@ -79,8 +85,9 @@ pub fn stdin() -> Receiver<Item> {
 }
 
 /// One line of `--in json`: either a bare string or an object with any of
-/// `display`, `value` and `icon` (docs/PLAN.md, D16 — the opt-in path for
-/// values that a TAB-separated line cannot carry, newlines included).
+/// `display`, `value`, `icon`, `search` and `detail` (docs/PLAN.md, D16 — the
+/// opt-in path for values that a TAB-separated line cannot carry, newlines
+/// included, which is what a multi-line detail needs).
 pub fn parse_json_line(line: &str) -> Option<Item> {
     let line = line.trim();
     if line.is_empty() {
@@ -97,6 +104,7 @@ pub fn parse_json_line(line: &str) -> Option<Item> {
         value,
         icon: object.icon.filter(|icon| !icon.is_empty()),
         search: object.search.filter(|search| !search.is_empty()),
+        detail: object.detail.filter(|detail| !detail.is_empty()),
     })
 }
 
@@ -106,6 +114,7 @@ struct JsonItem {
     value: Option<String>,
     icon: Option<String>,
     search: Option<String>,
+    detail: Option<String>,
 }
 
 /// `stream` for the JSON protocol.

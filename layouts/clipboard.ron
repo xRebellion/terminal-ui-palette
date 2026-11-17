@@ -1,0 +1,45 @@
+// The clipboard picker: cliphist's history, one row per entry, with the
+// entry's own text on the right — the shape of the fzf picker this replaces:
+// a prompt and a header stacked at the top of the left column, the list under
+// them, the preview running the full height of the right column, one border
+// around everything.
+//
+// This file is data. No crate names it (docs/PLAN.md, D7).
+(
+    window: (title: "clipboard", frame: true),
+    theme: (
+        accent: "#f92672",
+        selected_bg: "#1c1c1a",
+        text: "#f8f8f2",
+        dim: "#75715e",
+    ),
+    host: (width: 106, height: 26, class: "tuipalette"),
+    layout: (
+        dir: Horizontal,
+        sizes: ["40%", "fill", "1"],
+        children: [
+            (
+                dir: Vertical,
+                sizes: ["1", "1", "fill"],
+                children: [(pane: "query"), (pane: "header"), (pane: "list")],
+            ),
+            // The preview keeps the full height and its own box: its frame is
+            // the divider against the list, and the one-cell spacer after it is
+            // the blank column the original left before the window's border —
+            // without that gap the two frames read as one.
+            (pane: "preview"),
+            (pane: "gap"),
+        ],
+    ),
+    panes: [
+        (id: "query", kind: Input, title: "> ", frame: false),
+        (id: "header", kind: Text, items: ["Clipboard History"], frame: false),
+        (id: "list", kind: Menu, frame: false),
+        (id: "preview", kind: Detail, from: "list"),
+        (id: "gap", kind: Spacer),
+    ],
+    keys: {
+        "esc": Some(Quit),
+        "enter": Some(Accept),
+    },
+)

@@ -2,7 +2,7 @@
 Last updated: 2026-11-16
 
 ## What works
-- Fifteen items landed, the workspace builds and its suites pass — `cargo test --workspace` → `84 passed, 0 failed`
+- Nineteen items landed, the workspace builds and its suites pass — `cargo test --workspace` → `88 passed, 0 failed`
 - A RON or JSON document parses, validates, resolves to pane rects and deserializes its key map — `cargo test -p tuipalette-core --test spec` → `16 passed`
 - Focus, bubbling, emit and key-map override/unset work headless — `cargo test -p tuipalette-core --test dispatch` → `14 passed`
 - The built-ins draw from their pane kind, pinned by snapshots, with icon slots whose four fill states keep the text column fixed — `cargo test -p tuipalette-core --test components` → `16 passed`
@@ -15,6 +15,7 @@ Last updated: 2026-11-16
 - The three rofi *modes* have equivalents, verified: `run` (`scripts/run-command.sh`, 4669 candidates, free text accepted), `drun` (`scripts/launch-apps.sh`) and `window` (`scripts/switch-window.sh`, address returned); `calc` and `-password` are benched with reasons in `docs/specs/14-parity.md`
 - All four rofi keybinds are rewired: `SUPER+R` → `scripts/run-command.sh`, `SUPER+Space` → `scripts/launch-apps.sh`, `SUPER+Shift+,` → `scripts/switch-window.sh`; `XF86Calculator` stays on rofi (benched)
 - drun matches Name, GenericName, Exec, Categories and Keywords while showing the Name (rofi parity, D17); `seahorse` finds "Passwords and Keys"
+- The clipboard picker migrated from fzf: rows from cliphist, the selected entry previewed through `Item.detail` + `kind: Detail`, and a paste after focus returns — `scripts/clipboard.sh`, layout measured against the original (`docs/specs/19-clipboard.md`)
 - The app list opens in 20 ms (was 1276 ms) and both launchers remember what was used (`scripts/usage.sh`)
 - The floating host survives a real keybind: focused window, typed query, Escape closes it with no dead window (four bugs fixed — `docs/specs/08-hosts.md`)
 - The picker matches rofi on the same keybind — same card, same entries, compared on screen; whole path 117–132 ms against rofi's 42–45 ms, the delta being the terminal's spawn

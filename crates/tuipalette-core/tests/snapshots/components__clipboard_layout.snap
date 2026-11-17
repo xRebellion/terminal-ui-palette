@@ -1,0 +1,13 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "ui::screen(&buf)"
+---
+╭──────────────────────────────────────────────────────────────╮
+│> ▏                      ╭──────────────────────────────────╮ │
+│Clipboard History        │first entry, shown on the right   │ │
+│› 13127  [[ binary data 1│second line of it                 │ │
+│  13126  Short answer: on│                                  │ │
+│                         │                                  │ │
+│                         │                                  │ │
+│                         ╰──────────────────────────────────╯ │
+╰──────────────────────────────────────────────────────────────╯

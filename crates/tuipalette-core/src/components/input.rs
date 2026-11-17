@@ -11,6 +11,7 @@ pub struct InputLine {
     id: String,
     title: String,
     value: String,
+    frame: bool,
 }
 
 impl InputLine {
@@ -19,6 +20,7 @@ impl InputLine {
             id: pane.id.clone(),
             title: pane.title.clone(),
             value: String::new(),
+            frame: pane.frame,
         }
     }
 
@@ -33,20 +35,30 @@ impl Component for InputLine {
     }
 
     fn render(&self, paint: &Paint<'_>, buf: &mut Buffer) {
-        let inner = ui::frame(buf, paint.area, &self.title, paint.focused, paint.theme);
+        let inner = if self.frame {
+            ui::frame(buf, paint.area, &self.title, paint.focused, paint.theme)
+        } else {
+            paint.area
+        };
         if inner.height == 0 {
             return;
         }
         let cursor = if paint.focused { "▏" } else { "" };
-        let shown = ui::tail(&format!("{}{cursor}", self.value), inner.width);
-        ui::put(
-            buf,
-            inner.x,
-            inner.y,
-            inner.width,
-            &shown,
-            Style::default().fg(paint.theme.text_color()),
-        );
+        let style = Style::default().fg(paint.theme.text_color());
+        let mut x = inner.x;
+        let mut room = inner.width;
+        // Without a frame there is nowhere to hang the title, so it becomes the
+        // prompt in front of the query — fzf's `>`. A framed pane keeps it on
+        // the frame instead.
+        if !self.frame && !self.title.is_empty() {
+            let prompt = format!("{}", self.title);
+            ui::put(buf, x, inner.y, room, &prompt, style);
+            let used = ui::width(&prompt);
+            x += used;
+            room = room.saturating_sub(used);
+        }
+        let shown = ui::tail(&format!("{}{cursor}", self.value), room);
+        ui::put(buf, x, inner.y, room, &shown, style);
     }
 
     fn update(&mut self, action: &Action) -> Reaction {

@@ -9,6 +9,7 @@ pub struct TextPane {
     id: String,
     title: String,
     lines: Vec<String>,
+    frame: bool,
 }
 
 impl TextPane {
@@ -17,6 +18,7 @@ impl TextPane {
             id: pane.id.clone(),
             title: pane.title.clone(),
             lines: pane.items.clone(),
+            frame: pane.frame,
         }
     }
 }
@@ -31,7 +33,11 @@ impl Component for TextPane {
     }
 
     fn render(&self, paint: &Paint<'_>, buf: &mut Buffer) {
-        let inner = ui::frame(buf, paint.area, &self.title, paint.focused, paint.theme);
+        let inner = if self.frame {
+            ui::frame(buf, paint.area, &self.title, paint.focused, paint.theme)
+        } else {
+            paint.area
+        };
         let style = Style::default().fg(paint.theme.text_color());
         for (row, line) in self.lines.iter().take(inner.height as usize).enumerate() {
             ui::put(buf, inner.x, inner.y + row as u16, inner.width, line, style);

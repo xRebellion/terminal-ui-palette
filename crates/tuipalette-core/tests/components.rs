@@ -10,8 +10,38 @@
 use tuipalette_core::components::{Item, Menu, Spacer};
 use tuipalette_core::spec::{Format, Theme};
 use tuipalette_core::{
-    ui, Action, Buffer, Component, Key, KeyCode, Mods, Outcome, Paint, Rect, Session, UiSpec,
+    ui, Action, Buffer, Component, Key, KeyCode, Mods, Outcome, Paint, Picker, Rect, Session,
+    UiSpec,
 };
+
+/// The clipboard layout is the fzf picker's shape: one border around
+/// everything, a prompt line, a header line, list on the left, the selected
+/// entry on the right. Pinned because "close to the original" is a promise
+/// someone will check against a screenshot.
+#[test]
+fn the_clipboard_layout_follows_the_selection() {
+    let text = include_str!("../../../layouts/clipboard.ron");
+    let mut picker = Picker::new(spec(text)).unwrap_or_else(|e| panic!("{e}"));
+    picker.push(vec![
+        Item {
+            detail: Some("first entry, shown on the right\nsecond line of it".to_owned()),
+            ..Item::line("13127  [[ binary data 18 KiB png 369x85 ]]")
+        },
+        Item {
+            detail: Some("second entry".to_owned()),
+            ..Item::line("13126  Short answer: only the three frontend screens")
+        },
+    ]);
+    let area = Rect::new(0, 0, 64, 9);
+    let mut buf = Buffer::empty(area);
+    picker.render(area, &mut buf);
+    insta::assert_snapshot!("clipboard_layout", ui::screen(&buf));
+
+    picker.dispatch(Action::Down);
+    let mut buf = Buffer::empty(area);
+    picker.render(area, &mut buf);
+    insta::assert_snapshot!("clipboard_layout_second_row", ui::screen(&buf));
+}
 
 fn spec(text: &str) -> UiSpec {
     UiSpec::parse(text, Format::Ron).unwrap_or_else(|e| panic!("fixture must parse: {e}"))
@@ -146,6 +176,7 @@ fn a_menu_reserves_an_icon_column_when_the_pane_asks() {
             value: "firefox".to_owned(),
             icon: Some("ff".to_owned()),
             search: None,
+            detail: None,
           },
         Item::line("kitty"),
         Item {
@@ -153,6 +184,7 @@ fn a_menu_reserves_an_icon_column_when_the_pane_asks() {
             value: "code".to_owned(),
             icon: Some(">_".to_owned()),
             search: None,
+            detail: None,
           },
     ]);
     insta::assert_snapshot!("menu_icons", painted(&menu, 28, 6, true));
@@ -178,6 +210,7 @@ fn a_wide_icon_does_not_move_the_columns() {
         value: "firefox".to_owned(),
         icon: Some("🌐".to_owned()),
         search: None,
+        detail: None,
       }]);
     let area = Rect::new(0, 0, 24, 3);
     let mut buf = Buffer::empty(area);
@@ -326,7 +359,7 @@ fn the_icon_slot_keeps_the_text_column_in_all_four_cases() {
         .panes[0];
         let mut menu = Menu::new(pane);
         menu.set_items(vec![
-            Item { display: "firefox".to_owned(), value: "firefox".to_owned(), icon: icon.map(str::to_owned), search: None },
+            Item { display: "firefox".to_owned(), value: "firefox".to_owned(), icon: icon.map(str::to_owned), search: None, detail: None },
             Item::line("kitty"),
         ]);
         let area = Rect::new(0, 0, 24, 4);
@@ -373,6 +406,7 @@ fn a_glyph_too_wide_for_its_slot_falls_back_to_the_placeholder() {
         value: "firefox".to_owned(),
         icon: Some("🎉".to_owned()),
         search: None,
+        detail: None,
       }]);
     let area = Rect::new(0, 0, 20, 3);
     let mut buf = Buffer::empty(area);

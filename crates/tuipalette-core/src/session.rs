@@ -206,6 +206,14 @@ impl Session {
 
     /// Paint every pane in the rect the layout gave it.
     pub fn render(&self, area: Rect, buf: &mut Buffer) {
+        // One frame around the whole picker, if the document asks for one:
+        // the panes inside then draw into its interior, which is how a
+        // single-boxed layout with dividers inside is written.
+        let area = if self.spec.window.frame {
+            crate::ui::frame(buf, area, "", false, &self.spec.theme)
+        } else {
+            area
+        };
         // A validated spec cannot fail to resolve, and the spec is validated in
         // 'new', so nothing is drawn rather than panicking if that ever changes.
         let Ok(rects) = layout::resolve(&self.spec.layout, area) else {

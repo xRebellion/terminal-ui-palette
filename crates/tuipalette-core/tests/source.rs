@@ -5,6 +5,7 @@ use std::io::Read;
 use std::sync::mpsc::{self, Receiver};
 use std::time::Duration;
 
+use tuipalette_core::components::DetailPane;
 use tuipalette_core::matcher::SimpleMatcher;
 use tuipalette_core::source::{parse_line, stream};
 use tuipalette_core::spec::Format;
@@ -35,6 +36,12 @@ fn a_line_carries_display_value_and_icon() {
     // and a control character in it would break the column.
     assert_eq!(remainder.icon.as_deref(), Some("c"));
     assert_eq!(remainder.search.as_deref(), Some("d"), "the fourth field is search text");
+    assert_eq!(remainder.detail, None, "no fifth field, no detail");
+
+    let preview = parse_line("a\tb\t\t\tfirst line of the preview").expect("a line");
+    assert_eq!(preview.icon, None, "an empty field is an absent one");
+    assert_eq!(preview.search, None);
+    assert_eq!(preview.detail.as_deref(), Some("first line of the preview"));
 }
 
 #[test]
@@ -124,6 +131,43 @@ fn picker(text: &str) -> Picker {
     let spec = UiSpec::parse(text, Format::Ron).unwrap_or_else(|e| panic!("{e}"));
     let picker = Picker::new(spec).unwrap_or_else(|e| panic!("{e}"));
     picker.with_matcher(Box::new(SimpleMatcher::new()))
+}
+
+const PREVIEW: &str = r##"(
+    window: (title: "t"),
+    layout: (dir: Horizontal, sizes: ["fill", "20%"], children: [(pane: "list"), (pane: "peek")]),
+    panes: [
+        (id: "list", kind: Menu),
+        (id: "peek", kind: Detail, from: "list"),
+    ],
+)"##;
+
+/// A detail pane shows the selected row's `detail`, and follows the
+/// selection: it is a pane, not a second list.
+#[test]
+fn a_detail_pane_follows_the_selection() {
+    let mut picker = picker(PREVIEW);
+    picker.push(vec![
+        Item {
+            detail: Some("first preview".to_owned()),
+            ..Item::line("first")
+        },
+        Item {
+            detail: Some("second preview\nover two lines".to_owned()),
+            ..Item::line("second")
+        },
+    ]);
+    let shown = |picker: &Picker| {
+        picker
+            .session()
+            .pane::<DetailPane>("peek")
+            .and_then(|pane| pane.text().map(str::to_owned))
+    };
+    assert_eq!(shown(&picker).as_deref(), Some("first preview"), "the first row is selected");
+    picker.dispatch(Action::Down);
+    assert_eq!(shown(&picker).as_deref(), Some("second preview\nover two lines"));
+    picker.dispatch(Action::Up);
+    assert_eq!(shown(&picker).as_deref(), Some("first preview"));
 }
 
 fn items(names: &[&str]) -> Vec<Item> {
@@ -258,6 +302,7 @@ fn a_hit_on_hidden_words_is_a_real_but_shallower_match() {
             value: "seahorse".to_owned(),
             icon: None,
             search: Some("GNOME Security keyring seahorse".to_owned()),
+            detail: None,
         },
         Item::line("SeaMonkey"),
     ]);

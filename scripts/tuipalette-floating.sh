@@ -27,7 +27,7 @@ shift
 picker_flags=()
 while [ $# -gt 0 ]; do
   case $1 in
-    --prompt | --message | --theme | --height) picker_flags+=("$1" "${2:?$1 needs a value}"); shift 2 ;;
+    --prompt | --message | --theme | --height | --in) picker_flags+=("$1" "${2:?$1 needs a value}"); shift 2 ;;
     --no-sort | --accept-query | --print-query | --icons | --no-icons) picker_flags+=("$1"); shift ;;
     *) break ;;
   esac

@@ -7,7 +7,7 @@
 use std::sync::mpsc::{Receiver, TryRecvError};
 
 use crate::action::Action;
-use crate::components::{Item, Menu, Row};
+use crate::components::{DetailPane, Item, Menu, Row};
 use crate::error::SpecError;
 use crate::key::Key;
 use crate::matcher::{default_matcher, Matcher};
@@ -29,14 +29,17 @@ pub struct Picker {
     sorting: bool,
     /// Accept the typed query when nothing matches (rofi's custom input).
     accept_query: bool,
+    /// Pairs of (menu pane, detail pane): the preview follows the menu.
+    detail_links: Vec<(String, String)>,
 }
 
 impl Picker {
     pub fn new(spec: UiSpec) -> Result<Self, SpecError> {
         let input = first_of_kind(&spec, Kind::Input);
         let menu = first_of_kind(&spec, Kind::Menu);
+        let detail_links = detail_links(&spec);
         let session = Session::from_spec(spec)?;
-        Ok(Self {
+        let mut picker = Self {
             session,
             input,
             menu,
@@ -45,7 +48,10 @@ impl Picker {
             query: String::new(),
             sorting: true,
             accept_query: false,
-        })
+            detail_links,
+        };
+        picker.sync_detail();
+        Ok(picker)
     }
 
     /// Keep the order items arrived in. Filtering and highlighting still
@@ -160,6 +166,7 @@ impl Picker {
         let before = self.current_query();
         let outcome = self.session.on_key(key);
         self.sync_query(before);
+        self.sync_detail();
         outcome
     }
 
@@ -167,6 +174,7 @@ impl Picker {
         let before = self.current_query();
         let outcome = self.session.dispatch(action);
         self.sync_query(before);
+        self.sync_detail();
         outcome
     }
 
@@ -237,7 +245,38 @@ impl Picker {
         if let Some(menu) = self.session.pane_mut::<Menu>(&menu) {
             menu.set_rows(rows);
         }
+        self.sync_detail();
     }
+
+    /// Copy the selected row's detail into every detail pane that follows
+    /// it. Called after anything that can move the selection or change the
+    /// rows, so a preview is never one keystroke behind.
+    fn sync_detail(&mut self) {
+        for (menu, detail) in self.detail_links.clone() {
+            let text = self
+                .session
+                .pane::<Menu>(&menu)
+                .and_then(|menu| menu.selected())
+                .and_then(|item| item.detail.clone());
+            if let Some(pane) = self.session.pane_mut::<DetailPane>(&detail) {
+                pane.set_text(text);
+            }
+        }
+    }
+}
+
+/// Every detail pane in the document, paired with the menu it follows —
+/// the one `from` names, or the first menu there is.
+fn detail_links(spec: &UiSpec) -> Vec<(String, String)> {
+    let first_menu = first_of_kind(spec, Kind::Menu);
+    spec.panes
+        .iter()
+        .filter(|pane| pane.kind == Kind::Detail)
+        .filter_map(|pane| {
+            let menu = pane.from.clone().or_else(|| first_menu.clone())?;
+            Some((menu, pane.id.clone()))
+        })
+        .collect()
 }
 
 /// What a hit on a word the row does not show is worth: above nothing, below

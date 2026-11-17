@@ -24,6 +24,8 @@ pub struct Item {
     pub value: String,
     pub icon: Option<String>,
     pub search: Option<String>,
+    /// Shown by a `Detail` pane while this row is selected, never in the list.
+    pub detail: Option<String>,
 }
 
 impl Item {
@@ -35,6 +37,7 @@ impl Item {
             value: text,
             icon: None,
             search: None,
+            detail: None,
         }
     }
 }
@@ -63,6 +66,7 @@ pub struct Menu {
     selected: usize,
     /// Width of the icon column in cells, if the pane declares one.
     icon_width: Option<u16>,
+    frame: bool,
 }
 
 impl Menu {
@@ -73,6 +77,7 @@ impl Menu {
             rows: pane.items.iter().map(|text| Row::plain(Item::line(text))).collect(),
             selected: 0,
             icon_width: pane.icon_width.map(u16::from),
+            frame: pane.frame,
         }
     }
 
@@ -116,7 +121,11 @@ impl Component for Menu {
     }
 
     fn render(&self, paint: &Paint<'_>, buf: &mut Buffer) {
-        let inner = ui::frame(buf, paint.area, &self.title, paint.focused, paint.theme);
+        let inner = if self.frame {
+            ui::frame(buf, paint.area, &self.title, paint.focused, paint.theme)
+        } else {
+            paint.area
+        };
         if inner.height == 0 || inner.width == 0 {
             return;
         }

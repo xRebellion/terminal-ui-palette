@@ -18,7 +18,7 @@ Run it with `tuipalette --spec that.ron`, items arriving on stdin.
 
 | field | type | default | meaning |
 |---|---|---|---|
-| `window` | object | required | `title` — used as the terminal/window title |
+| `window` | object | required | `title` — used as the terminal/window title; `frame` — draw one box around the whole picker (default `false`) |
 | `theme` | object | built-in dark theme | colour tokens, below |
 | `layout` | node | required | the pane tree, below |
 | `panes` | list | `[]` | pane definitions, below |
@@ -80,21 +80,24 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 | field | type | default | meaning |
 |---|---|---|---|
 | `id` | string | required | the name `layout.pane` refers to |
-| `kind` | `Text` \| `Input` \| `Menu` \| `Status` \| `Spacer` | `Text` | what it draws |
-| `title` | string | `""` | frame title; for `Input`, the prompt |
-| `items` | list of strings | `[]` | for `Status`: the hints, joined with a gap |
+| `kind` | `Text` \| `Input` \| `Menu` \| `Status` \| `Spacer` \| `Detail` | `Text` | what it draws |
+| `title` | string | `""` | frame title; for an unframed `Input`, the prompt drawn in front of the query |
+| `items` | list of strings | `[]` | for `Status`: the hints, joined with a gap; for `Text`: the lines |
 | `icon_width` | integer | none | icon column width in cells; `None` means no column |
 | `keys` | map | `{}` | bindings only for this pane |
+| `from` | string | the first menu | for `Detail`: the `Menu` whose selection it follows |
+| `frame` | bool | `true` | `false` draws the pane without its box |
 
 ### What each kind draws
 
 | kind | draws | reacts to |
 |---|---|---|
 | `Text` | a framed block of static lines, from `items` | nothing |
-| `Input` | the query line with a cursor, framed | typing, `Backspace` |
+| `Input` | the query line with a cursor; framed, or one bare row with `frame: false` | typing, `Backspace` |
 | `Menu` | the item list: marker, optional icon slot, display, match highlight, a derived scroll window | `Up`/`Down`, `Accept` |
 | `Status` | one row of hints, no frame | nothing |
 | `Spacer` | nothing, holding its cells | nothing |
+| `Detail` | the selected row's `detail` text, line by line, clipped to the pane | nothing — the picker refills it when the menu's selection or rows change |
 
 The `Menu` clamps at both ends (no wrap), never scrolls past its window, and highlights the characters that matched the query.
 
@@ -144,7 +147,7 @@ Built-in defaults (present even when the document says nothing):
 
 ## Items on stdin
 
-Default protocol, one item per line, up to four TAB-separated fields:
+Default protocol, one item per line, up to five TAB-separated fields:
 
 | field | required | notes |
 |---|---|---|
@@ -152,6 +155,7 @@ Default protocol, one item per line, up to four TAB-separated fields:
 | value | no | what `Accept` returns, byte for byte; defaults to the display |
 | icon | no | the glyph for the icon slot; the third field |
 | search | no | text the matcher sees and the row never shows; the fourth field |
+| detail | no | text a `Detail` pane shows while the row is selected; the fifth field |
 
 A line without a tab is both display and value, which is what makes `printf 'a\nb\n' | tuipalette` a dmenu. An empty field is an absent one, so `name<TAB>exec<TAB><TAB>words` has no icon and searchable words.
 
@@ -159,7 +163,7 @@ The search field is how a provider lends the matcher words the row should be fou
 
 Ranking: a row matching on its display is scored by the matcher and its characters are highlighted. A row found only through its value or search text is a real hit, keeps arrival order among its peers (so a usage-ordered list stays usage-ordered), and is never highlighted, because positions index the display. Both kinds rank below every display match.
 
-`--in json` reads one object per line instead: `{"display": "…", "value": "…", "icon": "…", "search": "…"}`, same rules.
+`--in json` reads one object per line instead: `{"display": "…", "value": "…", "icon": "…", "search": "…", "detail": "…"}`, same rules. Expressing a detail longer than one line is the reason it exists: in the TAB protocol a newline would end the item.
 
 Items are read on a thread as they arrive, so a slow provider fills the list progressively rather than holding the first frame back.
 
