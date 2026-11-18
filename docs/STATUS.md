@@ -2,43 +2,42 @@
 Last updated: 2026-11-16
 
 ## What works
-- Sixteen items landed (1–15 and 19), the workspace builds and its suites pass — `cargo test --workspace` → `88 passed, 0 failed`
-- A RON or JSON document parses, validates, resolves to pane rects and deserializes its key map — `cargo test -p tuipalette-core --test spec` → `16 passed`
-- Focus, bubbling, emit and key-map override/unset work headless — `cargo test -p tuipalette-core --test dispatch` → `14 passed`
-- The built-ins draw from their pane kind, pinned by snapshots, with icon slots whose four fill states keep the text column fixed — `cargo test -p tuipalette-core --test components` → `16 passed`
-- The picker speaks the dmenu contract: items on stdin, keys from the terminal, one value out — `scripts/pty-check.py ./target/release/tuipalette layouts/dmenu.ron '\x1b[B\r'` → `exit=0 value=b'herdr\n'`; `'\x1b'` → `exit=130 value=b''`
-- Streaming, ranking and highlighting work end to end — 60 000 `find /usr` items, typed `libx`, enter → `/usr/share/licenses/libxml2` in 0.97 s
-- **Floating host, on a real compositor** — `scripts/verify-floating.sh` → `class tuipalette-verify, floating, 541x281 px (=60x14 cells), special:tuipalette-verify`, `focus before/after` unchanged, `value: beta`, `windows left: 0`, `result: ok`
-- **Inline host, in a real kitty** — the picker's region is wiped and the cursor parked at its first cell, so the next output starts clean: screen after exit showed blank rows then `beta`, `AFTER-LINE rc=0`, `MARK>hey`, `GOT[hey]`; scrollback contained no frame characters (`grep -c 'select\|enter choose'` → `0`)
-- A new picker can be written from `docs/spec-reference.md` alone — `layouts/wifi.ron` + `scripts/wifi.sh` were, and `--check` → `ok — 3 panes, 2 bindings`, typed `cafe` + enter → `cafe`
-- `herdr-sessions.sh` runs on the picker — the live script opens with its prompt, hint line and caller order, and escape returns `rc=0`; attach, new+typed name, delete+confirm, cancel and decline also driven through a fake picker and stubs; the three rofi-shaped flags checked in a pty
-- The three rofi *modes* have equivalents, verified: `run` (`scripts/run-command.sh`, 4669 candidates, free text accepted), `drun` (`scripts/launch-apps.sh`) and `window` (`scripts/switch-window.sh`, address returned); `calc` and `-password` are benched with reasons in `docs/specs/14-parity.md`
-- All four rofi keybinds are rewired: `SUPER+R` → `scripts/run-command.sh`, `SUPER+Space` → `scripts/launch-apps.sh`, `SUPER+Shift+,` → `scripts/switch-window.sh`; `XF86Calculator` stays on rofi (benched)
-- drun matches Name, GenericName, Exec, Categories and Keywords while showing the Name (rofi parity, D17); `seahorse` finds "Passwords and Keys"
-- The clipboard picker migrated from fzf and then **shelved**: rows from cliphist, the selected entry previewed through `Item.detail` + `kind: Detail`, a paste after focus returns, the layout measured against the original — but `SUPER+Shift+V` still runs the fish script until 20–23 land (D19, `docs/specs/19-clipboard.md`)
-- The app list opens in 20 ms (was 1276 ms) and both launchers remember what was used (`scripts/usage.sh`)
-- The floating host survives a real keybind: focused window, typed query, Escape closes it with no dead window (four bugs fixed — `docs/specs/08-hosts.md`)
-- The picker matches rofi on the same keybind — same card, same entries, compared on screen; whole path 117–132 ms against rofi's 42–45 ms, the delta being the terminal's spawn
-- The timing switch reports its phases, and the whole cold path fits the budget — `TUIPALETTE_TIMING=1` → `spec-parse 0.1ms, terminal-init 0.5–0.8ms, first-frame 0.7–1.0ms` (**under 2 ms**, terminal spawn 217–495 ms measured separately)
+- The workspace builds and every suite passes — `cargo test --workspace` → `88 passed, 0 failed` (core 73, tui 4, bin 11)
+- All four shipped documents validate, so a schema change has a cheap gate — `for f in layouts/*.ron; do tuipalette --check --spec $f; done` → `clipboard.ron: ok — 5 panes, 2 bindings`, `dmenu.ron: ok — 3 panes, 1 binding`, `rofi-like.ron: ok — 3 panes, 2 bindings`, `wifi.ron: ok — 3 panes, 2 bindings`
+- The dmenu contract is driven without a terminal emulator: items in, keys, one value out — `scripts/pty-check.py ./target/release/tuipalette layouts/dmenu.ron '\x1b[B\r'` → `exit=0 value=b'b\n'`
+- The two hooks the next items extend: `Menu` derives its own scroll window (22), and the picker writes a pane it owns on every selection change (23, the `Detail` mechanism) — `cargo test -p tuipalette-core --test components` → `17 passed`, 10 snapshots including both clipboard states
+- Three of four rofi binds are the picker's, committed in the dotfiles (`02c34c0`): `grep -n TUIPALETTE ~/dotfiles_private/hypr/conf/binds.lua` → `R`, `Space`, `SHIFT + COMMA`; `XF86Calculator` is still `rofi -show calc`
+- The floating rule is installed and committed — `grep -c tuipalette-floating ~/dotfiles_private/hypr/conf/windowrules.lua` → `1`
+- The clipboard picker works (rows, the preview that follows the selection, the paste) but is **shelved**: `SUPER+Shift+V` still runs `cliphist-fzf.fish` until 20–23 close its four gaps (D19)
+- Providers answer: `scripts/run-command.sh --list` → `4669`, `scripts/apps.sh` → `106`, `scripts/switch-window.sh --list` → `4` (live clients), `scripts/clipboard.sh --list` → `0` because the history is empty right now
 
 ## Known broken and believed
-- **Known gap:** enter with no matches does nothing — `Menu` answers `Handled` over an empty list, so a mistyped query gets silence instead of a cancel or the typed text; would fix by making accept-on-empty return the query when `--print-query` is set.
-- **Thin cover:** `--out-file` is exercised end to end by `scripts/verify-floating.sh` and by nothing smaller — a refactor of the write path would break the floating host, which that script catches, but there is no unit test that names the behaviour.
-- **Believed:** `scripts/apps.sh` mis-lists applications on a multi-locale system (first `Name=`, no `TryExec`); would confirm with `LANG=de_DE.UTF-8` against `rofi -show drun`.
+- **Known gap:** enter with no match does nothing unless the caller passes `--accept-query` — `pty-check.py … 'zzz\r'` → no exit within the harness's 10 s, against `exit=0 value=b'zzz\n'` with the flag. A document cannot decide it yet; that is 16's `rules`. Blocks next step: no
+- **Thin cover:** `--out-file` is exercised end to end only by `scripts/verify-floating.sh`; there is no smaller test naming the write path. Blocks next step: no
+- **Believed:** `scripts/apps.sh` mis-lists applications on a multi-locale system (first `Name=`, no `TryExec`) — would confirm by running it under `LANG=de_DE.UTF-8` against `rofi -show drun`
 
 ## State of what the project touches
 | what | state now | checked with |
 |---|---|---|
-| repo | clean tree at `d57e8a4` before the item-08 fix, 7 items committed, ~75 tracked files | `git status --porcelain`; `git log --oneline` |
-| `crates/tuipalette-core` | spec, layout, keys, router, five built-ins, matcher, picker — 63 tests | `cargo test -p tuipalette-core` |
-| `crates/tuipalette-tui` | crossterm backend, key decoding, draw loop, inline teardown | `cargo test -p tuipalette-tui` |
-| `crates/tuipalette` | the picker binary: flags, fd handling, exit codes, timing switch | `scripts/pty-check.py ./target/release/tuipalette …` |
-| `layouts/` | `rofi-like.ron`, `dmenu.ron`, `wifi.ron` — data no crate names; hints carry navigation | `for f in layouts/*.ron; do tuipalette --check --spec $f; done` → three `ok` lines |
-| `scripts/` | pty harness, floating adapter, app/dmenu/window/run providers, focus-safe verification | `scripts/run-command.sh --list | wc -l` → `4669`; `scripts/switch-window.sh --list | wc -l` → `9` |
-| `~/.config/hypr/conf/windowrules.lua` | the **floating rule is installed** (verified: `floating: true`, 541x241 px for the 60x12 dmenu document); the verify rule is not, so `scripts/verify-floating.sh` refuses to run | `grep -c tuipalette-floating ~/.config/hypr/conf/windowrules.lua`; `hyprctl clients -j` |
+| repo | all of this committed — README, the example, plan item 24 and this tracker | `git status --porcelain` → no lines |
+| `crates/tuipalette-core` | spec, layout, keys, router, five built-ins + `Detail`, matcher, picker — 73 tests | `cargo test -p tuipalette-core` |
+| `crates/tuipalette-tui` | crossterm backend, key decoding, draw loop, inline teardown — 4 tests | `cargo test -p tuipalette-tui` |
+| `crates/tuipalette` | the binary: flags, fd handling, exit codes, `--check`, `examples/minimal.rs` — 11 tests | `cargo test -p tuipalette`; `cargo build --examples` |
+| `layouts/` | four documents — `rofi-like`, `dmenu`, `wifi`, `clipboard` — all `--check` clean, no crate naming them | the `--check` loop above |
+| `scripts/` | providers and the floating adapter; the counts above | `--list` on each provider |
+| cliphist history | **empty** (0 rows) while both `wl-paste` watchers run, so the clipboard picker lists nothing until something is copied | `cliphist list \| wc -l` → `0`; `pgrep -a wl-paste` → text + image watchers |
+| `~/.config/hypr` (symlink into `~/dotfiles_private/hypr`) | binds and window rule committed at `02c34c0`; the checkout is dirty only in `pi/` files unrelated to this project | `git -C ~/dotfiles_private status --porcelain -- hypr` → no lines |
 | host toolchain | rustc/cargo 1.95.0 | `cargo --version` |
 
 ## Next steps
+- [ ] 22 — scrollbar on a `Menu`: `scrollbar: true`, a proportional thumb in the rightmost column, `Theme.scrollbar`/`scrollbar_bg` — snapshot of 5 rows in a 3-row window, no bar when everything fits
+- [ ] 23 — `kind: Counter`, `3/49` written by the picker after every refilter, `format` and `align` — snapshot with a typed query, plus the clipboard header showing it
+- [ ] 20 — hold the images decision (host-level escape passthrough or keep graphics out) and write `docs/specs/20-images.md` — the first of the four D19 gaps
+- [ ] 21 — mouse capture, hover, click and wheel, opt-in via `window: (mouse: true)` — SGR sequences driven through `scripts/pty-check.py`
+- [ ] 16 — rules: conditional actions and document transitions; it blocks 17, which blocks 18, and it is where accept-on-empty becomes data
+- [ ] 17 — revisit herdr and the wifi flow against `docs/specs/17-revisit.md`
+- [ ] 18 — ranking: literal substring before subsequence, then shorter display, then frecency as a documented tie-break
+- [ ] rewire `SUPER+Shift+V` to `scripts/clipboard.sh` and unshelve it (closes D19) — after 20, 21, 22 and 23
 
 ## How to reproduce the verification
-From the repo root on the host: `cargo build --workspace && cargo test --workspace` (rustc 1.95.0; crates resolve from crates.io on the first build). Then run the commands in "What works" in this order. The two host checks need a live session: `scripts/verify-floating.sh` for the compositor, and a kitty window running `printf 'alpha\nbeta\n' | tuipalette --inline --height 6` for the inline one.
+From the repo root on the host: `cargo build --release --workspace && cargo test --workspace` (rustc 1.95.0; crates come from crates.io on the first build). Then run the commands in "What works" in this order. The pty checks need no display; the floating one needs a live session, where `scripts/verify-floating.sh` refuses to run unless its verify rule is installed. `scripts/clipboard.sh` needs a non-empty cliphist history to show rows.

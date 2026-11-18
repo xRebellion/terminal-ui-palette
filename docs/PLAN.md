@@ -22,6 +22,14 @@ Last updated: 2026-11-16
   - 15 — Icon slots and their fallback · done 2026-11-16
   - 11 — Spec reference and component guide · done 2026-11-16
   - 16 — Conditional actions and document transitions
+  - 17 — Revisit the herdr setup and the wifi flow
+  - 18 — Ranking: substring before subsequence, and frecency as a tie-break
+  - 19 — Clipboard picker: a preview that follows the selection · done 2026-11-16
+  - 20 — Images: the kitty graphics protocol, as a host feature
+  - 21 — Mouse: hover, click and wheel
+  - 22 — A scrollbar, as a pane option
+  - 23 — The item count (`shown/total`)
+  - 24 — A README that is true · done 2026-11-16
 - Decisions
 - Risks
 - Open questions
@@ -48,7 +56,7 @@ Goal surface, three crates in one workspace:
 - `crates/tuipalette` — the binary: argument parsing, spec loading, host selection, protocol, exit codes.
 - `layouts/` — shipped RON documents, `rofi-like.ron` among them. Data, never compiled in; deleting the directory leaves a working library.
 - `scripts/` — provider scripts and the host adapter that launches the picker in its floating window.
-- `docs/` — this plan, one spec per item in `docs/specs/NN-<slug>.md`, plus the user-facing schema reference from 11.
+- `docs/` — this plan, one spec per item in `docs/specs/NN-<slug>.md`, plus the user-facing schema reference from 11 and the README from 24.
 - `spike/` — throwaway evidence from 01. It currently carries its own `.git` and `.gitignore` (from `cargo init`), and the project root is not a repository at all; 02 owns deleting that nested repo and initialising the root.
 
 Seams that must stay clean: **spec → layout** (data in, `Rect`s out, no widgets), **component → app** (`Reaction`, no global mutation), **app → terminal** (ratatui and all width/icon mechanics behind `tuipalette-tui`), **process → caller** (lines on stdout, code on exit, nothing else on stdout ever), **library → shipped layout** (the crates compile and test green with `layouts/` absent). Placement is deliberately outside every seam — it belongs to the compositor, see D3.
@@ -191,6 +199,13 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - checkable: a snapshot with a typed query (`2/4`), a test that the number follows both typing and streaming rows, and the clipboard layout's header row showing it beside "Clipboard History".
 - after: 19 — it reuses the pane the picker writes into
 - detail: `docs/specs/23-counter.md`
+
+### 24 — A README that is true
+- `README.md`: what the project is, the one-line dmenu, a document, the five-field item protocol, the shipped pickers, both hosts, the library call, the measured numbers, the docs map and the roadmap — every claim run before it was written, and the library snippet shipped as a compiling example (`crates/tuipalette/examples/minimal.rs`) rather than a fragment that only looks right.
+- checkable by extracting the sample document out of the README and running `--check` on it, driving the quick-start pipeline through `scripts/pty-check.py`, and `cargo build --examples`.
+- after: 11
+- detail: `docs/specs/24-readme.md`
+
 ## Decisions
 Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the digest of what still binds outstanding work.
 - D1 — Render stack: ratatui 0.30 + crossterm, confined to `tuipalette-tui`; components render into `&mut Buffer` and never touch `Frame`, so they stay testable headless and backend-agnostic (binds all)
@@ -209,6 +224,9 @@ Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the
 - D14 — Measurement basis: the 100 ms budget is exec → first flushed frame, spawn excluded and reported apart; rofi is compared whole-path (binds 09, 12)
 - D15 — Field sanitation: display sanitized, value byte-exact, last declared field takes the remainder (extends D12; binds 06, 07, 15)
 - D16 — Pipe escaping: TAB fields by default, `--in json`/`--out json` together for byte-exact values (binds 06, 07)
+- D17 — Search text is a fourth item field, never a display trick: rofi's drun matches five fields and draws one, so `display<TAB>value<TAB>icon<TAB>search`; a hit on `search` scores 1, never highlights, and keeps arrival order (binds 06, 07, 15)
+- D18 — A preview is item data plus a pane that follows a menu, not a command the picker runs: `Item.detail`, `kind: Detail`, `from: "<menu id>"`, copied on every selection change (binds 19, 20)
+- D19 — The clipboard picker is shelved, not wired: it stays implemented and tested, but `SUPER+Shift+V` keeps the fzf script until images (20), mouse (21), the scrollbar (22) and `49/49` (23) land (binds 19, 20, 21, 22, 23)
 
 ## Risks
 - Cold start lands far worse than rofi and the picker feels sluggish on a keybind — trigger: 12 or 09 measuring above the 100 ms budget, or a visible delay against everything else on the compositor.
