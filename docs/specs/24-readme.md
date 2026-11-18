@@ -1,6 +1,6 @@
 # 24 — A README that is true
 
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
 The README is the first thing a stranger reads and the easiest document to let rot:
 it makes claims about behaviour that only a run can confirm. So the rule for this

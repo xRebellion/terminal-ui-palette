@@ -1,5 +1,5 @@
 # terminal-ui-palette — Status
-Last updated: 2026-11-16
+Last updated: 2026-11-18
 
 ## What works
 - The workspace builds and every suite passes — `cargo test --workspace` → `88 passed, 0 failed` (core 73, tui 4, bin 11)

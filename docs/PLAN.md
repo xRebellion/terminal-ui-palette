@@ -1,5 +1,5 @@
 # terminal-ui-lib — Plan
-Last updated: 2026-11-16
+Last updated: 2026-11-18
 
 ## Contents
 - Goal
@@ -16,20 +16,20 @@ Last updated: 2026-11-16
   - 08 — Host adapters: floating window and inline · done 2026-11-16
   - 12 — Cold-start probe: is 100 ms reachable at all? · done 2026-11-16
   - 09 — Latency verdict and the daemon decision · done 2026-11-16
-  - 10 — Migrate one real picker end to end · done 2026-11-16
+  - 10 — Migrate one real picker end to end · done 2026-11-17
   - 13 — Ship a rofi-like layout · done 2026-11-16
-  - 14 — Rofi parity inventory and empirical check · done 2026-11-16
+  - 14 — Rofi parity inventory and empirical check · done 2026-11-17
   - 15 — Icon slots and their fallback · done 2026-11-16
   - 11 — Spec reference and component guide · done 2026-11-16
   - 16 — Conditional actions and document transitions
   - 17 — Revisit the herdr setup and the wifi flow
   - 18 — Ranking: substring before subsequence, and frecency as a tie-break
-  - 19 — Clipboard picker: a preview that follows the selection · done 2026-11-16
+  - 19 — Clipboard picker: a preview that follows the selection · done 2026-11-17
   - 20 — Images: the kitty graphics protocol, as a host feature
   - 21 — Mouse: hover, click and wheel
   - 22 — A scrollbar, as a pane option
   - 23 — The item count (`shown/total`)
-  - 24 — A README that is true · done 2026-11-16
+  - 24 — A README that is true · done 2026-11-17
 - Decisions
 - Risks
 - Open questions
@@ -113,7 +113,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 08, 12
 - detail: `docs/specs/09-latency.md`
 
-### 10 — Migrate one real picker end to end · done 2026-11-16
+### 10 — Migrate one real picker end to end · done 2026-11-17
 - `~/.config/hypr/scripts/herdr-sessions.sh` (multi-step `rofi -dmenu` menus, typed input as the answer) running on `tuipalette` with no behaviour change — checkable by binding it: attach, back, empty-answer entry, cancel.
 - after: 08
 - detail: `docs/specs/10-migration.md`
@@ -123,7 +123,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 07
 - detail: `docs/specs/13-rofi-like-layout.md`
 
-### 14 — Rofi parity inventory and empirical check · done 2026-11-16
+### 14 — Rofi parity inventory and empirical check · done 2026-11-17
 - Every rofi call site **a user can still reach** enumerated — `~/.config/hypr/scripts` (which, after item 10, has none left), the four binds that go through `MENU = "rofi -show"` in `hyprland.lua` (`run`, `drun`, `window`, `calc`), and `~/.local/bin/rofi-wifi-menu.sh` with `-dmenu`/`-password`/`-auto-select`/`-location`/`-opacity`/`-font`/`-e` — each recorded as migrated, benched or impossible, with the flags it used.
 - The original wording scoped this to `~/.config/hypr/scripts`, where the only call site was the herdr picker and item 10 had already migrated it: the checkable would have passed while claiming nothing. Widened to the sites that actually exist.
 - checkable by the inventory table in the item's spec, with a command and its output for every migrated row, and a one-line reason for every benched or impossible one.
@@ -163,7 +163,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 17 — the revisit decides what stays in the providers
 - detail: `docs/specs/18-ranking.md`
 
-### 19 — Clipboard picker: a preview that follows the selection · done 2026-11-16
+### 19 — Clipboard picker: a preview that follows the selection · done 2026-11-17
 - Migrating `~/.config/hypr/scripts/cliphist-fzf.fish` (cliphist + fzf with a right-hand preview) exposed three things the schema could not express: a pane whose content is the *selected row's* payload, a pane without its own box, and a border around the whole window. All three are now declared data.
 - `Item.detail` is a fifth field (JSON: `detail`) that no list row draws; `kind: Detail` shows it for the row the menu has selected, following `from: "<menu id>"`; the picker copies it on every selection or row change, so a preview is never a keystroke behind. `frame: false` removes a pane's box, `window.frame: true` draws one around everything.
 - The layout is measured against the original, not eyeballed: fzf's border box in `hyprshot-window` capture `960x540` has its preview at rows 1–25 and columns 43–103 of a 105-column interior, i.e. the preview runs the *full* height beside the prompt and header, and one blank column is left before the right border. `layouts/clipboard.ron` reproduces that (the blank column is a one-cell `Spacer`), which is why the preview is not inside the left column's vertical split.
@@ -200,7 +200,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 19 — it reuses the pane the picker writes into
 - detail: `docs/specs/23-counter.md`
 
-### 24 — A README that is true
+### 24 — A README that is true · done 2026-11-17
 - `README.md`: what the project is, the one-line dmenu, a document, the five-field item protocol, the shipped pickers, both hosts, the library call, the measured numbers, the docs map and the roadmap — every claim run before it was written, and the library snippet shipped as a compiling example (`crates/tuipalette/examples/minimal.rs`) rather than a fragment that only looks right.
 - checkable by extracting the sample document out of the README and running `--check` on it, driving the quick-start pipeline through `scripts/pty-check.py`, and `cargo build --examples`.
 - after: 11
