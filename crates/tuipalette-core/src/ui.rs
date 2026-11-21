@@ -90,6 +90,45 @@ pub fn fit(text: &str, width: u16) -> String {
     out
 }
 
+/// `line` cut into pieces of at most `width` cells. Breaks between words when
+/// it can — a space at the break is dropped — and inside a word only when the
+/// word alone is wider than a line (a path, a URL). Measured by grapheme
+/// cluster, so a wide glyph is never split. An empty line stays one empty
+/// piece, which keeps blank lines in a preview.
+pub fn wrap(line: &str, width: u16) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut current = String::new();
+    let mut used = 0u16;
+    if width == 0 {
+        return vec![String::new()];
+    }
+    // Words with the spaces that follow them, so a run of spaces survives
+    // inside a line and only disappears at a break.
+    for word in line.split_inclusive(' ') {
+        let bare = word.trim_end_matches(' ');
+        let need = self::width(bare);
+        if used > 0 && used + need > width {
+            out.push(current.trim_end_matches(' ').to_owned());
+            current.clear();
+            used = 0;
+        }
+        for cluster in word.graphemes(true) {
+            let w = u16::try_from(cluster.width()).unwrap_or(u16::MAX);
+            if used + w > width {
+                if cluster == " " {
+                    continue; // a space never starts a line or overflows one
+                }
+                out.push(std::mem::take(&mut current));
+                used = 0;
+            }
+            current.push_str(cluster);
+            used = used.saturating_add(w);
+        }
+    }
+    out.push(current.trim_end_matches(' ').to_owned());
+    out
+}
+
 /// The tail of `text` that fits in `width` cells — a query is typed at its end,
 /// so the end is the part worth showing.
 pub fn tail(text: &str, width: u16) -> String {
@@ -135,4 +174,18 @@ pub fn screen(buf: &Buffer) -> String {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wrap;
+
+    #[test]
+    fn wrap_breaks_between_words_and_inside_only_an_overlong_one() {
+        assert_eq!(wrap("should not be", 9), vec!["should", "not be"]);
+        assert_eq!(wrap("abcdefghij kl", 4), vec!["abcd", "efgh", "ij", "kl"]);
+        assert_eq!(wrap("", 5), vec![""]);
+        assert_eq!(wrap("a  b", 10), vec!["a  b"], "inner spaces stay");
+        assert_eq!(wrap("界界界", 4), vec!["界界", "界"], "a wide glyph is never split");
+    }
 }

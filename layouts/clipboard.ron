@@ -1,61 +1,71 @@
-// The clipboard picker: cliphist's history, one row per entry, with the
-// entry's own text on the right — the shape of the fzf picker this replaces:
-// a prompt and a header stacked at the top of the left column, the list under
-// them, the preview running the full height of the right column, one border
-// around everything.
+// The clipboard picker: cliphist's history on the left, the selected entry on
+// the right, inside one titled card.
 //
-// The count in the header is plan item 23: the picker writes it after every
-// refilter, so typing narrows it the way fzf's does.
+//   ╭─ Clipboard History ───────────────────────────────────────────╮
+//   │                                                                │
+//   │  > query▏                  30/30  │  the selected entry,       │
+//   │  ─────────────────────────────────│  wrapped to the pane       │
+//   │  › newest entry                  ▐│                            │
+//   │    older entry…                   │                            │
+//   │                                                                │
+//   ╰────────────────────────────────────────────────────────────────╯
+//
+// One frame only — the window's — with the title on it, so nothing is boxed
+// twice. Inside it, padding keeps text off the border; a rule under the query
+// and a rule between the columns do the dividing, each with a blank cell on
+// both sides. The count shares the query's row, dim, the way fzf's info line
+// does (plan items 19, 21–23; the layout was revised 2026-11-21 after the
+// user looked at it live).
 //
 // This file is data. No crate names it (docs/PLAN.md, D7).
 (
-    // Its own floating window, like the launcher: the mouse is captured
-    // (docs/specs/21-mouse.md).
-    window: (title: "clipboard", frame: true, mouse: true),
+    // Its own floating window, so the mouse is captured (docs/specs/21-mouse.md).
+    window: (title: "Clipboard History", frame: true, mouse: true, padding: (x: 1, y: 1)),
     theme: (
         accent: "#f92672",
-        selected_bg: "#1c1c1a",
+        // Monokai's own selection colour: visible on the terminal's background,
+        // where the old near-black one barely was.
+        selected_bg: "#3e3d32",
+        hover_bg: "#2c2c26",
         text: "#f8f8f2",
         dim: "#75715e",
+        scrollbar: "#57564a",
+        scrollbar_bg: "#2c2c26",
     ),
     host: (width: 106, height: 26, class: "tuipalette"),
     layout: (
         dir: Horizontal,
-        sizes: ["40%", "fill", "1"],
+        sizes: ["45%", "3", "fill"],
         children: [
             (
                 dir: Vertical,
                 sizes: ["1", "1", "fill"],
                 children: [
-                    (pane: "query"),
-                    // fzf's info line: the label against the left edge, and
-                    // `shown/total` against the right edge of the same row.
-                    // The label keeps its 17 cells and the count takes the
-                    // rest, so a full history (`250/250`, `1000/1000`) fits
-                    // instead of losing the total's last digits.
-                    (dir: Horizontal, sizes: ["min:17", "fill"], children: [
-                        (pane: "header"),
+                    // The query, with the count against the right edge of the
+                    // same row. Ten cells hold `9999/9999` plus a gap; a larger
+                    // count drops digits from the left, never the total's.
+                    (dir: Horizontal, sizes: ["fill", "10"], children: [
+                        (pane: "query"),
                         (pane: "count"),
                     ]),
+                    (pane: "under-query"),
                     (pane: "list"),
                 ],
             ),
-            // The preview keeps the full height and its own box: its frame is
-            // the divider against the list, and the one-cell spacer after it is
-            // the blank column the original left before the window's border —
-            // without that gap the two frames read as one.
+            // Three cells: a blank, the line, a blank.
+            (pane: "divider"),
             (pane: "preview"),
-            (pane: "gap"),
         ],
     ),
     panes: [
         (id: "query", kind: Input, title: "> ", frame: false),
-        (id: "header", kind: Text, items: ["Clipboard History"], frame: false),
         (id: "count", kind: Counter, align: Right, frame: false),
-        // One click pastes, like the launcher (docs/specs/21-mouse.md).
-        (id: "list", kind: Menu, frame: false, click: Accept),
-        (id: "preview", kind: Detail, from: "list"),
-        (id: "gap", kind: Spacer),
+        (id: "under-query", kind: Rule, frame: false),
+        // One click pastes, like the launcher (docs/specs/21-mouse.md). The
+        // scrollbar says how deep in a 250-entry history the selection is.
+        (id: "list", kind: Menu, frame: false, click: Accept, scrollbar: true),
+        (id: "divider", kind: Rule, frame: false),
+        (id: "preview", kind: Detail, from: "list", frame: false, wrap: true),
     ],
     keys: {
         "esc": Some(Quit),

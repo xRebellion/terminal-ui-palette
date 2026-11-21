@@ -8,6 +8,7 @@ pub mod counter;
 pub mod detail;
 pub mod input;
 pub mod menu;
+pub mod rule;
 pub mod spacer;
 pub mod status;
 pub mod text;
@@ -16,6 +17,7 @@ pub use counter::CounterPane;
 pub use detail::DetailPane;
 pub use input::InputLine;
 pub use menu::{Item, Menu, Row};
+pub use rule::Rule;
 pub use spacer::Spacer;
 pub use status::StatusLine;
 pub use text::TextPane;
@@ -33,5 +35,6 @@ pub fn from_pane(pane: &Pane) -> Box<dyn Component> {
         Kind::Spacer => Box::new(Spacer::new(pane)),
         Kind::Detail => Box::new(DetailPane::new(pane)),
         Kind::Counter => Box::new(CounterPane::new(pane)),
+        Kind::Rule => Box::new(Rule::new(pane)),
     }
 }

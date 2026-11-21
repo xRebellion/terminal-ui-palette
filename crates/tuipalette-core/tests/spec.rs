@@ -297,6 +297,16 @@ fn a_click_setting_needs_a_menu_and_the_mouse() {
 }
 
 #[test]
+fn wrap_belongs_to_a_detail() {
+    let doc = |kind: &str| {
+        format!("(window: (title: \"x\"), layout: (pane: \"p\"), panes: [(id: \"p\", kind: {kind}, wrap: true)])")
+    };
+    assert!(spec(&doc("Detail")).is_ok());
+    let error = spec(&doc("Text")).unwrap_err();
+    assert!(error.contains("panes[0].wrap"), "{error}");
+}
+
+#[test]
 fn a_scrollbar_belongs_to_a_menu() {
     const NOT_A_LIST: &str = r#"(
             window: (title: "x"),

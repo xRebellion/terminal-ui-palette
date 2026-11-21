@@ -18,6 +18,8 @@ pub struct DetailPane {
     /// What to show; `None` until the picker hands the first selection over.
     text: Option<String>,
     frame: bool,
+    /// Wrap long lines instead of cutting them at the pane's edge.
+    wrap: bool,
 }
 
 impl DetailPane {
@@ -28,6 +30,7 @@ impl DetailPane {
             from: pane.from.clone(),
             text: None,
             frame: pane.frame,
+            wrap: pane.wrap,
         }
     }
 
@@ -69,7 +72,15 @@ impl Component for DetailPane {
             return;
         };
         let style = Style::default().fg(paint.theme.text_color());
-        for (row, line) in text.lines().take(inner.height as usize).enumerate() {
+        // A tab has no width of its own in a cell grid; four spaces is what
+        // most viewers show.
+        let lines = text.lines().map(|line| line.replace('\t', "    "));
+        let rows: Vec<String> = if self.wrap {
+            lines.flat_map(|line| ui::wrap(&line, inner.width)).collect()
+        } else {
+            lines.collect()
+        };
+        for (row, line) in rows.iter().take(inner.height as usize).enumerate() {
             ui::put(buf, inner.x, inner.y + row as u16, inner.width, line, style);
         }
     }

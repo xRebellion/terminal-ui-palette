@@ -307,7 +307,13 @@ impl Component for Menu {
             ui::put(buf, x, y, room, marker, plain);
             x += ui::width(marker);
             room = room.saturating_sub(ui::width(marker));
-            write_display(buf, x, y, room, data, marked, plain);
+            // A row cut short says so: the last cell becomes `…`.
+            if ui::width(&data.item.display) > room && room > 1 {
+                write_display(buf, x, y, room - 1, data, marked, plain);
+                ui::put(buf, x + room - 1, y, 1, "\u{2026}", plain);
+            } else {
+                write_display(buf, x, y, room, data, marked, plain);
+            }
         }
         if let Some((top, length)) = bar {
             self.draw_bar(buf, inner, rows, top, length, paint.theme);

@@ -109,7 +109,8 @@ impl Component for CounterPane {
             Align::Center => inner.x + (inner.width - width) / 2,
             Align::Right => inner.right() - width,
         };
-        let style = Style::default().fg(paint.theme.text_color());
+        // Furniture, like fzf's info line: dim, so it never competes with rows.
+        let style = Style::default().fg(paint.theme.dim_color());
         ui::put(buf, x, inner.y, width, &text, style);
     }
 }

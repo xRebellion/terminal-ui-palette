@@ -226,6 +226,13 @@ impl Session {
         } else {
             area
         };
+        let pad = self.spec.window.padding;
+        let area = Rect::new(
+            area.x.saturating_add(pad.x),
+            area.y.saturating_add(pad.y),
+            area.width.saturating_sub(pad.x.saturating_mul(2)),
+            area.height.saturating_sub(pad.y.saturating_mul(2)),
+        );
         // A validated spec cannot fail to resolve, and the spec is validated in
         // 'new', so nothing is drawn rather than panicking if that ever changes.
         layout::resolve(&self.spec.layout, area).unwrap_or_default()
@@ -283,7 +290,8 @@ impl Session {
         // the panes inside then draw into its interior, which is how a
         // single-boxed layout with dividers inside is written.
         if self.spec.window.frame {
-            crate::ui::frame(buf, area, "", false, &self.spec.theme);
+            // The window's title sits on its frame, the way a framed pane's does.
+            crate::ui::frame(buf, area, &self.spec.window.title, false, &self.spec.theme);
         }
         let rects = self.rects(area);
         let focused = self.focus().map(str::to_owned);

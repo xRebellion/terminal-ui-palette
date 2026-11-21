@@ -51,8 +51,9 @@ impl Component for InputLine {
         // prompt in front of the query — fzf's `>`. A framed pane keeps it on
         // the frame instead.
         if !self.frame && !self.title.is_empty() {
-            let prompt = format!("{}", self.title);
-            ui::put(buf, x, inner.y, room, &prompt, style);
+            let prompt = self.title.clone();
+            let accent = Style::default().fg(paint.theme.accent_color());
+            ui::put(buf, x, inner.y, room, &prompt, accent);
             let used = ui::width(&prompt);
             x += used;
             room = room.saturating_sub(used);

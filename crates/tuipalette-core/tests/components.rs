@@ -413,6 +413,53 @@ fn the_scrollbar_thumb_follows_the_selection() {
     assert!(tops.windows(2).all(|pair| pair[1] >= pair[0]), "the thumb never goes backwards: {tops:?}");
 }
 
+// --- dividers, padding, wrap, ellipsis (the clipboard revision) -------------
+
+/// A `Rule` draws one line through its rect: across a wide one, down a tall
+/// one, centred — so a three-column rule has a blank cell on each side.
+#[test]
+fn a_rule_draws_one_centred_line() {
+    let doc = r##"(window: (title: "t"), layout: (dir: Horizontal, sizes: ["3", "fill"], children: [(pane: "v"), (pane: "h")]), panes: [(id: "v", kind: Rule), (id: "h", kind: Rule)])"##;
+    let text = screen(&session(doc), 10, 5);
+    assert_eq!(text, " │\n │\n │ ───────\n │\n │", "{text}");
+}
+
+/// `window.padding` moves every pane in from the frame — and the title of a
+/// framed window is on its frame.
+#[test]
+fn window_padding_insets_the_layout_inside_the_frame() {
+    let doc = r##"(window: (title: "pad", frame: true, padding: (x: 2, y: 1)), layout: (pane: "t"), panes: [(id: "t", kind: Text, frame: false, items: ["hi"])])"##;
+    let text = screen(&session(doc), 12, 5);
+    assert_eq!(text, "╭─ pad ────╮\n│          │\n│  hi      │\n│          │\n╰──────────╯");
+}
+
+/// A row too long for its pane ends in `…`, so a cut-off entry says so.
+#[test]
+fn a_row_cut_short_ends_in_an_ellipsis() {
+    let doc = r##"(window: (title: "t"), layout: (pane: "m"), panes: [(id: "m", kind: Menu, frame: false, items: ["abcdefghij", "abc"])])"##;
+    let text = screen(&session(doc), 8, 2);
+    assert_eq!(text, "› abcde…\n  abc");
+}
+
+/// A `Detail` with `wrap: true` breaks long lines between words.
+#[test]
+fn a_wrapping_detail_breaks_between_words() {
+    let doc = r##"(window: (title: "t"), layout: (pane: "m"), panes: [(id: "m", kind: Menu, frame: false), (id: "d", kind: Detail, frame: false, wrap: true)])"##;
+    let doc = doc.replace("layout: (pane: \"m\")", "layout: (dir: Horizontal, children: [(pane: \"m\"), (pane: \"d\")])");
+    let mut picker = Picker::new(spec(&doc)).expect("picker");
+    picker.push(vec![Item { detail: Some("should not be cut".to_owned()), ..Item::line("x") }]);
+    // Two panes of nine cells: "should not" is ten, so it breaks after "should".
+    let area = Rect::new(0, 0, 18, 3);
+    let mut buf = Buffer::empty(area);
+    picker.render(area, &mut buf);
+    let text = ui::screen(&buf);
+    let right: Vec<String> = text
+        .lines()
+        .map(|line| line.chars().skip(9).collect::<String>().trim_end().to_owned())
+        .collect();
+    assert_eq!(right, vec!["should", "not be", "cut"], "{text}");
+}
+
 // --- the mouse (21) ---------------------------------------------------------
 
 /// A query pane over a framed list, with the mouse captured — the rofi-like
@@ -652,27 +699,29 @@ fn a_counter_takes_its_wording_and_its_edge_from_the_document() {
     }
 }
 
-/// The clipboard's header row is fzf's info line: the label on the left and
-/// the count against the right edge of the same row.
+/// The clipboard's title is on the window's frame, and the count shares the
+/// query's row, against the left column's right edge — fzf's info line.
 #[test]
-fn the_clipboard_header_shows_the_count_beside_its_label() {
+fn the_clipboard_title_is_on_the_frame_and_the_count_beside_the_query() {
     let text = include_str!("../../../layouts/clipboard.ron");
     let mut picker = Picker::new(spec(text)).expect("the shipped layout must build");
     picker.push(vec![Item::line("first entry"), Item::line("second entry")]);
     let area = Rect::new(0, 0, 64, 9);
     let mut buf = Buffer::empty(area);
     picker.render(area, &mut buf);
-    let header = ui::screen(&buf);
-    let row = header.lines().nth(2).unwrap_or_default().to_owned();
-    assert!(row.contains("Clipboard History"), "{row:?}");
-    // Right-aligned in its own pane, so it is the last thing before the border.
-    let before_the_border = row.trim_end_matches(['│', ' ']);
-    assert!(before_the_border.ends_with("2/2"), "{row:?}");
+    let screen = ui::screen(&buf);
+    let top = screen.lines().next().unwrap_or_default();
+    assert!(top.starts_with("╭─ Clipboard History "), "{top:?}");
+    let row = screen.lines().nth(2).unwrap_or_default();
+    // Border, left column (query … count), divider, preview.
+    let left = row.split('│').nth(1).unwrap_or_default();
+    assert!(left.trim_start().starts_with('>'), "{row:?}");
+    assert!(left.trim_end().ends_with(" 2/2"), "{row:?}");
 }
 
 /// A full history is the case that matters: cliphist keeps 250 entries here,
 /// and the header must show every digit of both numbers at the window size
-/// the layout asks for (106 wide, so the left column is 41 cells).
+/// the layout asks for (106 wide).
 #[test]
 fn the_clipboard_count_keeps_every_digit_of_a_full_history() {
     let text = include_str!("../../../layouts/clipboard.ron");
@@ -685,8 +734,7 @@ fn the_clipboard_count_keeps_every_digit_of_a_full_history() {
         picker.render(area, &mut buf);
         let screen = ui::screen(&buf);
         let row = screen.lines().nth(2).unwrap_or_default();
-        assert!(row.contains("Clipboard History"), "{row:?}");
-        // The outer border, then the left column, then the preview's frame.
+        // The outer border, then the left column, then the divider.
         let left = row.split('│').nth(1).unwrap_or_default().trim_end();
         assert!(left.ends_with(&format!(" {expected}")), "{rows} rows, query {query:?}: {row:?}");
     }

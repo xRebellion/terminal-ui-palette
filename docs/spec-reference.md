@@ -18,7 +18,7 @@ Run it with `tuipalette --spec that.ron`, items arriving on stdin.
 
 | field | type | default | meaning |
 |---|---|---|---|
-| `window` | object | required | `title` — used as the terminal/window title; `frame` — draw one box around the whole picker (default `false`); `mouse` — capture the mouse for hover, click and wheel (default `false`, see below) |
+| `window` | object | required | `title` — used as the terminal/window title; `frame` — draw one box around the whole picker (default `false`); `mouse` — capture the mouse for hover, click and wheel (default `false`, see below); `padding: (x: N, y: N)` — blank cells between the edge (or the frame) and the layout, default none. With `frame: true` the title is drawn on the frame |
 | `theme` | object | built-in dark theme | colour tokens, below |
 | `layout` | node | required | the pane tree, below |
 | `panes` | list | `[]` | pane definitions, below |
@@ -83,7 +83,8 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 | field | type | default | meaning |
 |---|---|---|---|
 | `id` | string | required | the name `layout.pane` refers to |
-| `kind` | `Text` \| `Input` \| `Menu` \| `Status` \| `Spacer` \| `Detail` \| `Counter` | `Text` | what it draws |
+| `kind` | `Text` \| `Input` \| `Menu` \| `Status` \| `Spacer` \| `Detail` \| `Counter` \| `Rule` | `Text` | what it draws |
+| `wrap` | bool | `false` | for `Detail`: wrap long lines between words (inside a word only when it is wider than the pane) instead of cutting them |
 | `title` | string | `""` | frame title; for an unframed `Input`, the prompt drawn in front of the query |
 | `items` | list of strings | `[]` | for `Status`: the hints, joined with a gap; for `Text`: the lines |
 | `icon_width` | integer | none | icon column width in cells; `None` means no column |
@@ -106,6 +107,7 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 | `Status` | one row of hints, no frame | nothing |
 | `Spacer` | nothing, holding its cells | nothing |
 | `Detail` | the selected row's `detail` text, line by line, clipped to the pane | nothing — the picker refills it when the menu's selection or rows change |
+| `Rule` | a divider: one `dim` line across a wide rect or down a tall one, centred — a three-cell column is a blank, a line, a blank | nothing |
 | `Counter` | `shown/total` — the rows the query left, over the rows that arrived — written in `format` and placed by `align`, on the pane's first row | nothing — the picker writes both numbers after every refilter |
 
 The `Menu` clamps at both ends (no wrap), never scrolls past its window, and highlights the characters that matched the query.

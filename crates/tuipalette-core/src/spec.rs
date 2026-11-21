@@ -195,6 +195,12 @@ impl UiSpec {
                     }
                 }
             }
+            if pane.wrap && pane.kind != Kind::Detail {
+                return Err(SpecError::at_path(
+                    format!("panes[{i}].wrap"),
+                    "only a Detail wraps its text; `wrap` belongs to one",
+                ));
+            }
             if let Some(click) = pane.click {
                 if pane.kind != Kind::Menu {
                     return Err(SpecError::at_path(
@@ -329,6 +335,21 @@ pub struct Window {
     /// terminal, and a picker that steals the mouse in a pipeline is a bug.
     #[serde(rename = "mouse", default)]
     pub mouse: bool,
+    /// Blank cells between the window's edge (or its frame) and the layout:
+    /// `x` on the left and right, `y` above and below.
+    #[serde(rename = "padding", default)]
+    pub padding: Padding,
+}
+
+/// Room around the layout, in cells. Separate axes because a terminal cell is
+/// about twice as tall as it is wide: `(x: 2, y: 1)` looks even.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Padding {
+    #[serde(rename = "x", default)]
+    pub x: u16,
+    #[serde(rename = "y", default)]
+    pub y: u16,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -488,6 +509,10 @@ pub struct Pane {
     /// Omitted means `Select` (docs/specs/21-mouse.md).
     #[serde(rename = "click", default)]
     pub click: Option<Click>,
+    /// For `Detail`: wrap long lines at the pane's width instead of cutting
+    /// them off. Off by default.
+    #[serde(rename = "wrap", default)]
+    pub wrap: bool,
 }
 
 /// What a single click on a `Menu` row does.
@@ -577,6 +602,10 @@ pub enum Kind {
     /// arrived. The picker writes both numbers after every refilter.
     #[serde(rename = "Counter")]
     Counter,
+    /// A divider line: horizontal in a rect wider than it is tall, vertical
+    /// otherwise, centred either way. Draws nothing else and takes no focus.
+    #[serde(rename = "Rule")]
+    Rule,
 }
 
 /// Where a [`Kind::Counter`] puts its number inside its rect.
