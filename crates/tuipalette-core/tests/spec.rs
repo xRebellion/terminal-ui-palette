@@ -281,6 +281,21 @@ fn a_stray_counter_field_is_named_as_written() {
     }
 }
 
+/// `click` is a Menu's, and only means something when the mouse is captured.
+#[test]
+fn a_click_setting_needs_a_menu_and_the_mouse() {
+    let doc = |mouse: bool, kind: &str| {
+        format!(
+            "(window: (title: \"x\", mouse: {mouse}), layout: (pane: \"m\"), panes: [(id: \"m\", kind: {kind}, click: Accept)])"
+        )
+    };
+    assert!(spec(&doc(true, "Menu")).is_ok());
+    let error = spec(&doc(false, "Menu")).unwrap_err();
+    assert!(error.contains("panes[0].click") && error.contains("mouse: true"), "{error}");
+    let error = spec(&doc(true, "Text")).unwrap_err();
+    assert!(error.contains("panes[0].click") && error.contains("Menu"), "{error}");
+}
+
 #[test]
 fn a_scrollbar_belongs_to_a_menu() {
     const NOT_A_LIST: &str = r#"(

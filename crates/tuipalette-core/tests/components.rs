@@ -477,6 +477,23 @@ fn a_click_selects_and_a_second_click_accepts() {
     }
 }
 
+/// `click: Accept` is rofi's single click: the row under the pointer is
+/// selected and accepted at once, whatever was selected before.
+#[test]
+fn click_accept_takes_the_row_in_one_click() {
+    let text = POINTED.replace("kind: Menu, title: \"apps\"", "kind: Menu, title: \"apps\", click: Accept");
+    let mut picker = Picker::new(spec(&text)).expect("picker must build");
+    picker.push((0..10).map(|n| Item::line(format!("row {n:02}"))));
+    match picker.on_mouse(AREA, at(MouseKind::Click, 5, 7)) {
+        Outcome::Invoke { value, .. } => assert_eq!(value.as_deref(), Some("row 03")),
+        other => panic!("one click accepts the row under it, got {other:?}"),
+    }
+    // Off the rows a click still does nothing, in either mode.
+    let mut picker = Picker::new(spec(&text)).expect("picker must build");
+    picker.push((0..2).map(|n| Item::line(format!("row {n:02}"))));
+    assert_eq!(picker.on_mouse(AREA, at(MouseKind::Click, 5, 8)), Outcome::Continue);
+}
+
 /// Clicks that hit no row do nothing: the frame, the empty space under a short
 /// list, the query pane.
 #[test]

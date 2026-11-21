@@ -25,7 +25,8 @@
     ),
     panes: [
         (id: "query", kind: Input, title: "search"),
-        (id: "results", kind: Menu, title: "applications"),
+        // One click launches, as rofi does with me-accept-entry "!MousePrimary".
+        (id: "results", kind: Menu, title: "applications", click: Accept),
         (id: "status", kind: Status, items: ["enter run", "↑↓ move", "tab focus", "esc cancel", "type filter"]),
     ],
     keys: {

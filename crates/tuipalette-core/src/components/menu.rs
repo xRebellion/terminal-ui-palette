@@ -11,7 +11,7 @@
 use crate::action::Action;
 use crate::component::{Component, Paint, Reaction};
 use crate::pointer::{Mouse, MouseKind};
-use crate::spec::{Pane, ScrollbarStyle, Theme};
+use crate::spec::{Click, Pane, ScrollbarStyle, Theme};
 use crate::ui;
 use crate::{Buffer, Modifier, Rect, Style};
 
@@ -95,6 +95,8 @@ pub struct Menu {
     /// the pointer is over a row. Drawn apart from the selection, never
     /// mistaken for it: hovering does not change what Enter accepts.
     hovered: Option<usize>,
+    /// What one click on a row does: select it, or select and accept it.
+    click: Click,
 }
 
 impl Menu {
@@ -109,6 +111,7 @@ impl Menu {
             scrollbar: pane.scrollbar,
             scrollbar_style: pane.scrollbar_style(),
             hovered: None,
+            click: pane.click.unwrap_or_default(),
         }
     }
 
@@ -335,9 +338,11 @@ impl Component for Menu {
         }
     }
 
-    /// Hover follows the pointer; a click selects the row under it, and a
+    /// Hover follows the pointer; the wheel moves the selection. A click
+    /// depends on the pane's `click`: `Select` selects the row under it, and a
     /// click on the row already selected accepts it — so a double click
-    /// accepts any row, with no timer to tune; the wheel moves the selection.
+    /// accepts any row, with no timer to tune; `Accept` selects and accepts in
+    /// one click, the way rofi does.
     fn on_mouse(&mut self, mouse: &Mouse, area: Rect) -> Reaction {
         let under = self.row_at(mouse, area);
         match mouse.kind {
@@ -352,11 +357,12 @@ impl Component for Menu {
                 let Some(index) = under else {
                     return Reaction::Ignored;
                 };
-                if index == self.selected {
-                    return self.update(&Action::Accept);
-                }
+                let accept = self.click == Click::Accept || index == self.selected;
                 self.selected = index;
                 self.hovered = Some(index);
+                if accept {
+                    return self.update(&Action::Accept);
+                }
                 Reaction::Handled
             }
             MouseKind::ScrollUp | MouseKind::ScrollDown => {

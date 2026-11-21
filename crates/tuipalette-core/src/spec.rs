@@ -195,6 +195,23 @@ impl UiSpec {
                     }
                 }
             }
+            if let Some(click) = pane.click {
+                if pane.kind != Kind::Menu {
+                    return Err(SpecError::at_path(
+                        format!("panes[{i}].click"),
+                        "only a Menu has rows to click; `click` belongs to a list",
+                    ));
+                }
+                if !self.window.mouse {
+                    return Err(SpecError::at_path(
+                        format!("panes[{i}].click"),
+                        format!(
+                            "`{}` is what a click does, and this document never sees one; add `mouse: true` to `window`",
+                            click.name()
+                        ),
+                    ));
+                }
+            }
             if pane.icon_width == Some(0) {
                 return Err(SpecError::at_path(
                     format!("panes[{i}].icon_width"),
@@ -467,6 +484,34 @@ pub struct Pane {
     /// For `Counter`: which edge the number hugs.
     #[serde(rename = "align", default)]
     pub align: Option<Align>,
+    /// For `Menu`, with `window: (mouse: true)`: what one click on a row does.
+    /// Omitted means `Select` (docs/specs/21-mouse.md).
+    #[serde(rename = "click", default)]
+    pub click: Option<Click>,
+}
+
+/// What a single click on a `Menu` row does.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+pub enum Click {
+    /// Select the row; a click on the row already selected accepts it, so a
+    /// double click accepts. The default: a stray click never launches anything.
+    #[serde(rename = "Select")]
+    #[default]
+    Select,
+    /// Select and accept in one click — rofi's behaviour with
+    /// `me-accept-entry: "!MousePrimary"`.
+    #[serde(rename = "Accept")]
+    Accept,
+}
+
+impl Click {
+    /// The name the document writes, for error messages.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Select => "Select",
+            Self::Accept => "Accept",
+        }
+    }
 }
 
 fn default_true() -> bool {

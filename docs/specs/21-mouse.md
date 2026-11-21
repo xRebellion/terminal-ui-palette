@@ -49,11 +49,20 @@ reporting, or bytes were written to it) never moves anything.
   `hover_bg` (default `#313244`, quieter than `selected_bg`). Hovering never
   changes the selection, so Enter still accepts what the marker shows. A
   refilter forgets the hover; the next move sets it again.
-- **Click** selects the row under the pointer; a **click on the selected row
-  accepts it**. A double click therefore accepts any row, with no timer to tune
-  and nothing terminal-specific; the cost is that a single click on the
-  already-selected row also accepts — which is what clicking a highlighted
-  entry in rofi does.
+- **Click** is a per-pane choice, `click: Select | Accept` on a `Menu`
+  (added 2026-11-21 at the user's request — they were used to rofi's single
+  click):
+  - `Select` (the default): a click selects the row under the pointer, and a
+    **click on the selected row accepts it**. A double click therefore accepts
+    any row, with no timer to tune and nothing terminal-specific; the cost is
+    that a single click on the already-selected row also accepts.
+  - `Accept`: one click selects and accepts — rofi with
+    `me-select-entry: "MousePrimary"` and `me-accept-entry: "!MousePrimary"`,
+    which is the user's `~/.config/rofi/config.rasi`. `rofi-like.ron` and
+    `clipboard.ron` use it.
+  - The default stays `Select` so a stray click never launches anything in a
+    document that did not ask. `click` on a pane that is not a `Menu`, or in a
+    document without `window: (mouse: true)`, is a spec error naming the field.
 - **Wheel** moves the selection three rows a notch (`WHEEL_STEP`), clamped at
   both ends, only while the pointer is over the list body. The window follows
   the selection as it does for keys, so the next click hits the rows now drawn.
@@ -69,13 +78,13 @@ capture — and raw mode, which has the same exposure today — needs a panic ho
 
 ## What was checked
 
-    cargo test --workspace        # 121 passed, 0 failed
+    cargo test --workspace        # 123 passed, 0 failed (121 before `click`)
 
 - `tests/components.rs`: `hovering_highlights_the_row_under_the_pointer`
   (cell background `hover_bg` on the hovered row, `selected_bg` kept on the
   selection, plain elsewhere, hover dropped over the query),
   `a_click_selects_and_a_second_click_accepts` (`Invoke` with `row 03`),
-  `a_click_off_the_rows_selects_nothing` (frame, short-list blank, query),
+  `click_accept_takes_the_row_in_one_click`, `a_click_off_the_rows_selects_nothing` (frame, short-list blank, query),
   `the_wheel_scrolls_and_a_click_hits_the_scrolled_rows` (10 notches → 30, up →
   27, click on the top drawn row → 23, clamps at 199, ignored over the query),
   `a_click_moves_focus_to_the_pane_under_it`,
@@ -88,7 +97,9 @@ capture — and raw mode, which has the same exposure today — needs a panic ho
   | keys | result |
   |---|---|
   | `ESC[<35;10;8M` (move) then Enter | `row 001` — hover drew `48;2;49;50;68` (`hover_bg`) and did not select |
-  | `ESC[<0;10;7M`, release, `ESC[<0;10;7M` | `row 003` — click selected, second click accepted |
+  | `ESC[<0;10;7M`, release, `ESC[<0;10;7M` | `row 003` — click selected, second click accepted (`click: Select`) |
+  | `ESC[<0;10;7M` once, `click: Accept` (the shipped layout) | `row 003`, and `ESC[?1000l` written |
+  | `ESC[<0;10;7M` then Enter, `click: Select` | `row 003` — the click selected without accepting |
   | 10 × `ESC[<65;10;8M` (wheel down) then Enter | `row 031` |
   | Tab, click on the query, `150`, Enter | `row 150` — the click gave the query focus back |
   | wheel then Escape | `exit=130`; `ESC[?1000l` written — capture released |

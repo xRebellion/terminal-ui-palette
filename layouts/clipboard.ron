@@ -52,7 +52,8 @@
         (id: "query", kind: Input, title: "> ", frame: false),
         (id: "header", kind: Text, items: ["Clipboard History"], frame: false),
         (id: "count", kind: Counter, align: Right, frame: false),
-        (id: "list", kind: Menu, frame: false),
+        // One click pastes, like the launcher (docs/specs/21-mouse.md).
+        (id: "list", kind: Menu, frame: false, click: Accept),
         (id: "preview", kind: Detail, from: "list"),
         (id: "gap", kind: Spacer),
     ],

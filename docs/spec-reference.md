@@ -94,6 +94,7 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 | `scrollbar_style` | `Background` \| `Glyph` | `Background` | for `Menu` with `scrollbar: true`: a tinted cell background, or the `░`/`█` glyph column |
 | `format` | string | `{shown}/{total}` | for `Counter`: how the two numbers are written; `{shown}` and `{total}` are the only placeholders |
 | `align` | `Left` \| `Center` \| `Right` | `Left` | for `Counter`: which edge of its rect the number hugs |
+| `click` | `Select` \| `Accept` | `Select` | for `Menu` with `window: (mouse: true)`: what one click on a row does — select it (a second click accepts), or select and accept at once, like rofi |
 
 ### What each kind draws
 
@@ -111,7 +112,7 @@ The `Menu` clamps at both ends (no wrap), never scrolls past its window, and hig
 
 ### The mouse
 
-`window: (mouse: true)` captures the mouse for the run. It is off by default because capture takes text selection away from the terminal — turn it on for a picker that owns its own window (the shipped `rofi-like` and `clipboard` do), not for one that runs inline in somebody's shell. With it on: moving the pointer tints the row under it with `hover_bg` without selecting it; a click selects the row; a click on the row already selected accepts it, so a double click accepts any row; the wheel moves the selection three rows a notch; a click on another pane (the query) gives it focus. Without it, the picker ignores mouse events even if the terminal sends some. Capture is released on every exit, including an error or a panic.
+`window: (mouse: true)` captures the mouse for the run. It is off by default because capture takes text selection away from the terminal — turn it on for a picker that owns its own window (the shipped `rofi-like` and `clipboard` do), not for one that runs inline in somebody's shell. With it on: moving the pointer tints the row under it with `hover_bg` without selecting it; a click selects the row and a click on the row already selected accepts it, so a double click accepts any row — or, with `click: Accept` on the `Menu`, one click selects and accepts, as rofi does; the wheel moves the selection three rows a notch; a click on another pane (the query) gives it focus. Without it, the picker ignores mouse events even if the terminal sends some. Capture is released on every exit, including an error or a panic.
 
 ### The scrollbar and the count
 
