@@ -52,6 +52,9 @@ pub fn parse_line(line: &str) -> Option<Item> {
         icon,
         search,
         detail,
+        // The line protocol stops at five fields: the fifth takes the rest of
+        // the line, tabs included. A picture comes through `--in json`.
+        image: None,
     })
 }
 
@@ -85,7 +88,7 @@ pub fn stdin() -> Receiver<Item> {
 }
 
 /// One line of `--in json`: either a bare string or an object with any of
-/// `display`, `value`, `icon`, `search` and `detail` (docs/PLAN.md, D16 — the
+/// `display`, `value`, `icon`, `search`, `detail` and `image` (docs/PLAN.md, D16 — the
 /// opt-in path for values that a TAB-separated line cannot carry, newlines
 /// included, which is what a multi-line detail needs).
 pub fn parse_json_line(line: &str) -> Option<Item> {
@@ -105,6 +108,7 @@ pub fn parse_json_line(line: &str) -> Option<Item> {
         icon: object.icon.filter(|icon| !icon.is_empty()),
         search: object.search.filter(|search| !search.is_empty()),
         detail: object.detail.filter(|detail| !detail.is_empty()),
+        image: object.image.filter(|image| !image.is_empty()),
     })
 }
 
@@ -115,6 +119,7 @@ struct JsonItem {
     icon: Option<String>,
     search: Option<String>,
     detail: Option<String>,
+    image: Option<String>,
 }
 
 /// `stream` for the JSON protocol.

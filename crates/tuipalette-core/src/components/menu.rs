@@ -30,6 +30,9 @@ pub struct Item {
     pub search: Option<String>,
     /// Shown by a `Detail` pane while this row is selected, never in the list.
     pub detail: Option<String>,
+    /// A picture file an `Image` pane shows while this row is selected —
+    /// a path, never pixels or escapes (docs/specs/25-image-pane.md).
+    pub image: Option<String>,
 }
 
 impl Item {
@@ -42,6 +45,7 @@ impl Item {
             icon: None,
             search: None,
             detail: None,
+            image: None,
         }
     }
 }

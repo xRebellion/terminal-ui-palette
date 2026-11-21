@@ -122,6 +122,7 @@ fn run(args: Args, started: Instant, timing: bool) -> Result<u8, (u8, String)> {
     let options = tuipalette_tui::Options {
         inline,
         timing: timing.then_some(started),
+        images: args.images,
     };
     let outcome = tuipalette_tui::run(&mut picker, source, &options)
         .map_err(|error| (2, error.to_string()))?;

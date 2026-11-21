@@ -65,7 +65,9 @@
         // scrollbar says how deep in a 250-entry history the selection is.
         (id: "list", kind: Menu, frame: false, click: Accept, scrollbar: true),
         (id: "divider", kind: Rule, frame: false),
-        (id: "preview", kind: Detail, from: "list", frame: false, wrap: true),
+        // The selected entry: its picture where the terminal can draw one
+        // (kitty, D22), its text everywhere else and for text entries.
+        (id: "preview", kind: Image, from: "list", frame: false, wrap: true),
     ],
     keys: {
         "esc": Some(Quit),

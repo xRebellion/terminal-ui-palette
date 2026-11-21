@@ -7,7 +7,8 @@
 use std::sync::mpsc::{Receiver, TryRecvError};
 
 use crate::action::Action;
-use crate::components::{CounterPane, DetailPane, Item, Menu, Row};
+use crate::component::ImageRequest;
+use crate::components::{CounterPane, DetailPane, ImagePane, Item, Menu, Row};
 use crate::error::SpecError;
 use crate::key::Key;
 use crate::matcher::{default_matcher, Matcher};
@@ -201,6 +202,11 @@ impl Picker {
         self.session.render(area, buf);
     }
 
+    /// The pictures a frame of `area` asks for (`Session::images`).
+    pub fn images(&self, area: Rect) -> Vec<ImageRequest> {
+        self.session.images(area)
+    }
+
     fn current_query(&self) -> String {
         self.input
             .as_deref()
@@ -289,8 +295,15 @@ impl Picker {
                 .pane::<Menu>(&menu)
                 .and_then(|menu| menu.selected())
                 .and_then(|item| item.detail.clone());
+            let image = self
+                .session
+                .pane::<Menu>(&menu)
+                .and_then(|menu| menu.selected())
+                .and_then(|item| item.image.clone());
             if let Some(pane) = self.session.pane_mut::<DetailPane>(&detail) {
                 pane.set_text(text);
+            } else if let Some(pane) = self.session.pane_mut::<ImagePane>(&detail) {
+                pane.set(image, text);
             }
         }
     }
@@ -316,13 +329,13 @@ impl Picker {
     }
 }
 
-/// Every detail pane in the document, paired with the menu it follows —
-/// the one `from` names, or the first menu there is.
+/// Every pane that follows a selection (`Detail` and `Image`), paired with
+/// the menu it follows — the one `from` names, or the first menu there is.
 fn detail_links(spec: &UiSpec) -> Vec<(String, String)> {
     let first_menu = first_of_kind(spec, Kind::Menu);
     spec.panes
         .iter()
-        .filter(|pane| pane.kind == Kind::Detail)
+        .filter(|pane| matches!(pane.kind, Kind::Detail | Kind::Image))
         .filter_map(|pane| {
             let menu = pane.from.clone().or_else(|| first_menu.clone())?;
             Some((menu, pane.id.clone()))

@@ -67,4 +67,23 @@ pub trait Component: Any {
     fn value(&self) -> Option<String> {
         None
     }
+
+    /// A picture this pane wants shown over part of `area` (the rect its
+    /// `render` gets). The pane draws its text fallback into the buffer as
+    /// always; a host that can draw pictures then covers `ImageRequest::rect`
+    /// with the image, and a host that cannot leaves the fallback showing.
+    /// Nothing here knows a terminal or a protocol (D1, D22).
+    fn image(&self, _area: Rect) -> Option<ImageRequest> {
+        None
+    }
+}
+
+/// "Show this file in these cells": what a pane asks of a host's graphics.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageRequest {
+    /// Cells the picture may fill. The host fits the image inside, keeping
+    /// its aspect ratio.
+    pub rect: Rect,
+    /// The picture, as a path the host opens itself.
+    pub path: String,
 }

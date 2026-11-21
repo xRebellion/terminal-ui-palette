@@ -2,9 +2,11 @@
 //! draw loop. Everything that knows a terminal exists lives here, which is what
 //! keeps `tuipalette-core` testable headless (docs/PLAN.md, D1).
 
+pub mod graphics;
 pub mod input;
 pub mod run;
 
+pub use graphics::{Graphics, Protocol};
 pub use run::{run, Exit, Options};
 
 /// How many lines the terminal has, for a default inline height.

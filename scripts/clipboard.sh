@@ -20,6 +20,10 @@ script=$(readlink -f "${BASH_SOURCE[0]}")
 # How much of an entry the preview shows. A 200 KB log would otherwise be read
 # and thrown away on every keystroke, and the pane is 20 rows tall.
 preview_bytes=${CLIPBOARD_PREVIEW_BYTES:-4000}
+# Where image entries are decoded for the preview: one PNG per cliphist id,
+# so an entry decoded once is never decoded again. Private, and trimmed to
+# the ids still in the history on every run.
+image_cache=${CLIPBOARD_IMAGE_CACHE:-${XDG_RUNTIME_DIR:-/tmp}/tuipalette-clipboard}
 
 # --- paste mode -------------------------------------------------------------
 # Started by the compositor, so it is not a child of the picker's terminal.
@@ -49,13 +53,21 @@ fi
 # cliphist list is already newest-first, so no sorting is needed to keep recent
 # clips at the top.
 rows() {
+  mkdir -p -m 700 "$image_cache"
   cliphist list | while IFS=$'\t' read -r id text; do
+    image=""
     case $text in
+      '[[ binary'*png*)
+        # An Image pane shows the file where the terminal can draw pictures
+        # (D22) and this text where it cannot. The picker opens nothing
+        # itself: the path goes to the terminal, which reads the PNG.
+        image="$image_cache/$id.png"
+        [ -s "$image" ] || printf '%s' "$id" | cliphist decode > "$image" 2>/dev/null
+        detail=$text
+        ;;
       '[[ binary'*)
-        # The image itself would need a graphics protocol, which this picker
-        # does not speak (it stays terminal-agnostic); say so instead of
-        # showing nothing.
-        detail="$text (image preview needs a graphics protocol)"
+        # Not a PNG: kitty's file transfer reads PNG, so other formats stay text.
+        detail=$text
         ;;
       *)
         # NULs are dropped: a binary-ish entry would otherwise make every later
@@ -63,8 +75,16 @@ rows() {
         detail=$(printf '%s' "$id" | cliphist decode 2>/dev/null | head -c "$preview_bytes" | tr -d '\000' | tr '\n' '\v')
         ;;
     esac
-    printf '%s\t%s\t%s\n' "$id" "$text" "$detail"
-  done | jq -Rc 'split("\t") | {display: .[1], value: .[0], search: .[1], detail: (.[2] // "" | gsub("\u000b"; "\n"))}'
+    printf '%s\t%s\t%s\t%s\n' "$id" "$text" "$detail" "$image"
+  done | jq -Rc 'split("\t") | {display: .[1], value: .[0], search: .[1], detail: (.[2] // "" | gsub("\u000b"; "\n")), image: (.[3] // "")}'
+  # Forget decoded images whose entry has left the history.
+  local live
+  live=$(cliphist list | cut -f1)
+  for file in "$image_cache"/*.png; do
+    [ -e "$file" ] || continue
+    id=${file##*/}; id=${id%.png}
+    grep -qx "$id" <<<"$live" || rm -f "$file"
+  done
 }
 
 if [ "${1:-}" = "--list" ]; then

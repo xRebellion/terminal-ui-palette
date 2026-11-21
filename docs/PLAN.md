@@ -30,6 +30,7 @@ Last updated: 2026-11-21
   - 22 — A scrollbar, as a pane option · done 2026-11-18
   - 23 — The item count (`shown/total`) · done 2026-11-18
   - 24 — A README that is true · done 2026-11-17
+  - 25 — An Image pane, with the picture protocol behind a trait · done 2026-11-21
 - Decisions
 - Risks
 - Open questions
@@ -41,7 +42,7 @@ A Rust library plus one reference binary that builds rofi-class pickers inside a
 ## Non-goals
 - Not a rofi fork, and not a drop-in for `rofi`'s CLI. Compatibility is deliberately limited to the dmenu-style contract and the two modi the user actually runs.
 - No muxer popups: no `tmux display-popup`, no `zellij` floating panes. Benched, not rejected — there is still no use case for one.
-- No image-protocol icon backends in v1 (kitty graphics, sixel, iTerm inline). Icons render as glyphs with a placeholder fallback (15); `ratatui-image`-style rendering is a later, terminal-specific opt-in and never enters `picker-core`.
+- No image-protocol icon backends in v1 (kitty graphics, sixel, iTerm inline). Icons render as glyphs with a placeholder fallback (15). Preview pictures are the one exception (25, D22): drawn by a `tuipalette-tui` backend, never by `tuipalette-core`.
 - Not a general TUI application framework. It hosts pickers: a query line, a result list, static text and layout around them. No editor, no tree, no tabs, no mouse-driven drag.
 - Not a Wayland layer-shell or GTK client. Never links a display server, never owns a surface.
 - No config-as-code: no Lua/Rhai/Starlark, no conditionals, no expressions, no templating in the spec. Anything dynamic is a provider writing lines to stdin.
@@ -207,6 +208,13 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 11
 - detail: `docs/specs/24-readme.md`
 
+### 25 — An Image pane, with the picture protocol behind a trait · done 2026-11-21
+- The clipboard picker shows copied screenshots as text since D21. Item 20 named the way back: a path in the item, a rect from the layout, a host that draws, a text fallback per pane. The user asked for it with few dependencies and a protocol that can be swapped.
+- Scope: `Item.image` (JSON only), `kind: Image` (a `Detail` that also asks for a picture), `Component::image` → `ImageRequest { rect, path }`, `Picker::images`; in `tuipalette-tui` a `Graphics` trait (`place`, `clear`), a kitty backend through Unicode placeholders with the terminal reading the file, `--images auto|kitty|none`; `scripts/clipboard.sh` decodes PNG entries to a runtime cache.
+- checkable: `cargo test --workspace` green with the backend's bytes and cells tested headless; a live capture of the clipboard picker in kitty showing the selected screenshot, swapping on selection, gone on a text row and after exit; `--images none` showing the text; `cargo tree` unique count unchanged.
+- after: 19, 20
+- detail: `docs/specs/25-image-pane.md`
+
 ## Decisions
 Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the digest of what still binds outstanding work.
 - D1 — Render stack: ratatui 0.30 + crossterm, confined to `tuipalette-tui`; components render into `&mut Buffer` and never touch `Frame`, so they stay testable headless and backend-agnostic (binds all)
@@ -227,6 +235,7 @@ Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the
 - D16 — Pipe escaping: TAB fields by default, `--in json`/`--out json` together for byte-exact values (binds 06, 07)
 - D17 — Search text is a fourth item field, never a display trick: rofi's drun matches five fields and draws one, so `display<TAB>value<TAB>icon<TAB>search`; a hit on `search` scores 1, never highlights, and keeps arrival order (binds 06, 07, 15)
 - D18 — A preview is item data plus a pane that follows a menu, not a command the picker runs: `Item.detail`, `kind: Detail`, `from: "<menu id>"`, copied on every selection change (binds 19, 20)
+- D22 — Pictures are the host's, behind a `Graphics` trait: `Item.image` is a path, `kind: Image` falls back to its text, the core reports path + rect only, kitty placeholders are the first backend, no image crate (binds 25, 20, 19)
 - D21 — The clipboard picker is wired without thumbnails: `SUPER+Shift+V` runs `scripts/clipboard.sh`, image rows show cliphist's text line; closes D19 (binds 19, 20)
 - D20 — Ranking is tiered (exact, prefix, word start, anywhere, then fuzzy by score, then hidden-field hits) and the provider's order breaks ties, so usage ranks typed results too (refines D13; binds 18)
 - D19 — The clipboard picker is shelved, not wired: it stays implemented and tested, but `SUPER+Shift+V` keeps the fzf script until images (20), mouse (21), the scrollbar (22) and `49/49` (23) land (binds 19, 20, 21, 22, 23)

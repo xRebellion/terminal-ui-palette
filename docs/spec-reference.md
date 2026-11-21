@@ -108,6 +108,7 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 | `Spacer` | nothing, holding its cells | nothing |
 | `Detail` | the selected row's `detail` text, line by line, clipped to the pane | nothing — the picker refills it when the menu's selection or rows change |
 | `Rule` | a divider: one `dim` line across a wide rect or down a tall one, centred — a three-cell column is a blank, a line, a blank | nothing |
+| `Image` | a `Detail` that also shows the selected row's `image` file as a picture, fitted inside the pane, where the host can draw one (kitty, `--images`); everywhere else, and on rows without an image, the `detail` text — so `from` and `wrap` work as for `Detail` | nothing — the picker refills it with the selection |
 | `Counter` | `shown/total` — the rows the query left, over the rows that arrived — written in `format` and placed by `align`, on the pane's first row | nothing — the picker writes both numbers after every refilter |
 
 The `Menu` clamps at both ends (no wrap), never scrolls past its window, and highlights the characters that matched the query.
@@ -209,7 +210,7 @@ The search field is how a provider lends the matcher words the row should be fou
 
 Ranking (D20): a row whose display holds the query **literally** ranks above any scattered match, in four tiers — the display is the query, starts with it, has a word starting with it, contains it — and is highlighted where it matched. Then come the matcher's fuzzy hits, best score first. Last come rows found only through their value or search text: real hits, never highlighted, because positions index the display. Inside a tier the order the rows arrived in is kept, so a provider that sends its list most-used first (`scripts/usage.sh`) is ranked by usage *after* typing too. Smart case throughout: a query with an upper-case letter matches case exactly. `kn` therefore finds Ar**kn**ights before **K**o**n**sole.
 
-`--in json` reads one object per line instead: `{"display": "…", "value": "…", "icon": "…", "search": "…", "detail": "…"}`, same rules. Expressing a detail longer than one line is the reason it exists: in the TAB protocol a newline would end the item.
+`--in json` reads one object per line instead: `{"display": "…", "value": "…", "icon": "…", "search": "…", "detail": "…", "image": "…"}`, same rules. `image` exists only here: a path to a PNG an `Image` pane shows while the row is selected (the terminal reads the file, so it must be readable locally). Expressing a detail longer than one line is the reason it exists: in the TAB protocol a newline would end the item.
 
 Items are read on a thread as they arrive, so a slow provider fills the list progressively rather than holding the first frame back.
 
@@ -239,6 +240,7 @@ Exit codes: `0` accepted, `130` cancelled, `1` the document is wrong (with the p
 | `--print-query` | print the query before the value |
 | `--print-geometry` / `--print-class` | print the host hint and exit |
 | `--out-file <path>` | write the value there instead of stdout |
+| `--images auto\|kitty\|none` | how `Image` panes draw: `auto` (default) uses kitty's graphics when `KITTY_WINDOW_ID` is set and `TMUX` is not; `none` always shows the text. Never in `--inline` |
 
 Environment: `TUIPALETTE_TIMING=1` prints the startup phases to stderr; `TUIPALETTE_DEBUG_KEYS=1` prints each decoded key.
 

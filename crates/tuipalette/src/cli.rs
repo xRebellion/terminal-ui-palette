@@ -40,6 +40,8 @@ pub struct Args {
     pub accept_query: bool,
     /// Replace the status row with this line (`rofi -mesg`).
     pub message: Option<String>,
+    /// Which picture backend `Image` panes use: auto, kitty or none.
+    pub images: tuipalette_tui::Protocol,
     pub help: bool,
     pub version: bool,
 }
@@ -64,6 +66,7 @@ impl Default for Args {
             no_sort: false,
             accept_query: false,
             message: None,
+            images: tuipalette_tui::Protocol::Auto,
             help: false,
             version: false,
         }
@@ -95,6 +98,9 @@ usage: tuipalette --spec <file> [options]
   --print-geometry   print the document's <width>x<height> and exit
   --print-class      print the window class the floating adapter should ask for
   --out-file <path>  write the chosen value here instead of stdout
+  --images auto|kitty|none
+                     how Image panes draw pictures (default auto: kitty when
+                     the picker runs in kitty, outside tmux; otherwise text)
   -h, --help         this
   -V, --version      version
 
@@ -143,6 +149,11 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Args, String> {
                     text.parse()
                         .map_err(|_| format!("{text} is not a height in lines"))?,
                 );
+            }
+            "--images" => {
+                let text = take("--images")?;
+                out.images = tuipalette_tui::Protocol::from_name(&text)
+                    .ok_or_else(|| format!("--images takes auto, kitty or none, not {text}"))?;
             }
             "--in" => out.input = stream(&take("--in")?, "--in")?,
             "--out" => out.output = stream(&take("--out")?, "--out")?,
@@ -205,6 +216,15 @@ mod tests {
         assert!(rofiesque.no_sort && rofiesque.accept_query);
         assert_eq!(rofiesque.message.as_deref(), Some("hint"));
         assert_eq!(args(&["--no-icons"]).expect("flags").icons, Some(false));
+    }
+
+    #[test]
+    fn the_image_flag_names_a_backend() {
+        use tuipalette_tui::Protocol;
+        assert_eq!(args(&[]).expect("flags").images, Protocol::Auto);
+        assert_eq!(args(&["--images", "none"]).expect("flags").images, Protocol::None);
+        assert_eq!(args(&["--images=kitty"]).expect("flags").images, Protocol::Kitty);
+        assert!(args(&["--images", "sixel"]).expect_err("unknown").contains("sixel"));
     }
 
     #[test]

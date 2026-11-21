@@ -367,6 +367,7 @@ fn a_hit_on_hidden_words_is_a_real_but_shallower_match() {
             icon: None,
             search: Some("GNOME Security keyring seahorse".to_owned()),
             detail: None,
+            image: None,
         },
         Item::line("SeaMonkey"),
     ]);
@@ -406,4 +407,13 @@ fn accept_query_answers_with_the_typed_text() {
         silent.on_key(Key::new(KeyCode::Char(c), Mods::NONE));
     }
     assert_eq!(silent.on_key(Key::new(KeyCode::Enter, Mods::NONE)), tuipalette_core::Outcome::Continue);
+}
+
+/// `image` comes through `--in json` as a path, and an empty one is absent.
+#[test]
+fn a_json_item_carries_an_image_path() {
+    let item = tuipalette_core::parse_json_line(r#"{"display": "shot", "value": "7", "image": "/run/a.png"}"#).expect("item");
+    assert_eq!(item.image.as_deref(), Some("/run/a.png"));
+    let none = tuipalette_core::parse_json_line(r#"{"display": "x", "image": ""}"#).expect("item");
+    assert_eq!(none.image, None);
 }

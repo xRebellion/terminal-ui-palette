@@ -69,7 +69,7 @@ fn main() -> ExitCode {
     let source = source::stdin();
     let options = Options {
         inline: inline.then_some(10),
-        timing: None,
+        ..Options::default()
     };
     match tuipalette_tui::run(&mut picker, source, &options) {
         Ok(Exit::Accepted(value)) => {

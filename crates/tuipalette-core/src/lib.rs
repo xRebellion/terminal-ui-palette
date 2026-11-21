@@ -29,8 +29,10 @@ pub use ratatui_core::layout::{Position, Rect};
 pub use ratatui_core::style::{Color, Modifier, Style};
 
 pub use action::Action;
-pub use component::{Component, Paint, Reaction};
-pub use components::{from_pane, InputLine, Item, Menu, Row, Spacer, StatusLine, TextPane};
+pub use component::{Component, ImageRequest, Paint, Reaction};
+pub use components::{
+    from_pane, ImagePane, InputLine, Item, Menu, Row, Spacer, StatusLine, TextPane,
+};
 pub use error::SpecError;
 pub use key::{Key, KeyCode, Mods, Phase};
 pub use keymap::Keymap;

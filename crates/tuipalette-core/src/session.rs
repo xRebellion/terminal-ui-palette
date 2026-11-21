@@ -7,7 +7,7 @@
 use std::collections::BTreeMap;
 
 use crate::action::Action;
-use crate::component::{Component, Paint, Reaction};
+use crate::component::{Component, ImageRequest, Paint, Reaction};
 use crate::error::SpecError;
 use crate::key::{Key, KeyCode};
 use crate::keymap::Keymap;
@@ -282,6 +282,19 @@ impl Session {
             }
         }
         outcome
+    }
+
+    /// The pictures this frame of `area` asks for, one per pane that wants
+    /// one, in the rects `render` drew their fallbacks in. A host with
+    /// graphics draws these after the cells; one without ignores them.
+    pub fn images(&self, area: Rect) -> Vec<ImageRequest> {
+        self.rects(area)
+            .into_iter()
+            .filter_map(|(id, rect)| {
+                let &i = self.by_id.get(&id)?;
+                self.components[i].image(rect)
+            })
+            .collect()
     }
 
     /// Paint every pane in the rect the layout gave it.

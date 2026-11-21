@@ -302,6 +302,7 @@ fn wrap_belongs_to_a_detail() {
         format!("(window: (title: \"x\"), layout: (pane: \"p\"), panes: [(id: \"p\", kind: {kind}, wrap: true)])")
     };
     assert!(spec(&doc("Detail")).is_ok());
+    assert!(spec(&doc("Image")).is_ok());
     let error = spec(&doc("Text")).unwrap_err();
     assert!(error.contains("panes[0].wrap"), "{error}");
 }

@@ -17,7 +17,21 @@ use ratatui::{Terminal, TerminalOptions, Viewport};
 use tuipalette_core::components::Item;
 use tuipalette_core::{Outcome, Picker};
 
+use crate::graphics::{self, Graphics, Protocol};
 use crate::input;
+
+/// The picture backend, held for exactly as long as the run: whatever it put
+/// up is deleted on every way out, the way `MouseCapture` gives the mouse
+/// back — a normal exit, an error, and a panic unwinding through `run`.
+struct Pictures(Option<Box<dyn Graphics>>);
+
+impl Drop for Pictures {
+    fn drop(&mut self) {
+        if let Some(backend) = self.0.as_mut() {
+            backend.clear(&mut io::stdout()).ok();
+        }
+    }
+}
 
 /// How long the loop sleeps when nothing is happening. Short enough that
 /// streamed items appear immediately, long enough not to spin.
@@ -29,6 +43,14 @@ pub struct Options {
     pub inline: Option<u16>,
     /// When set, the phases are printed to stderr as they finish (item 12).
     pub timing: Option<Instant>,
+    /// Which picture backend to use for `Image` panes (D22).
+    pub images: Protocol,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self { inline: None, timing: None, images: Protocol::Auto }
+    }
 }
 
 pub enum Exit {
@@ -90,7 +112,11 @@ pub fn run(picker: &mut Picker, source: Receiver<Item>, options: &Options) -> io
     } else {
         None
     };
-    let outcome = loop_until_decided(&mut terminal, picker, &source, options);
+    // Inline runs share the screen with the shell; a picture there would
+    // outlive the viewport's rows, so pictures are a fullscreen feature.
+    let mut pictures = Pictures(if fullscreen { graphics::detect(options.images) } else { None });
+    let outcome = loop_until_decided(&mut terminal, picker, &source, options, &mut pictures);
+    drop(pictures);
     drop(capture);
     let outcome = outcome?;
 
@@ -118,6 +144,7 @@ fn loop_until_decided(
     picker: &mut Picker,
     source: &Receiver<Item>,
     options: &Options,
+    pictures: &mut Pictures,
 ) -> io::Result<Exit> {
     let mut dirty = true;
     let mut first = true;
@@ -127,11 +154,20 @@ fn loop_until_decided(
     let mut drawn = Rect::default();
     loop {
         if dirty {
+            let mut placed = Ok(());
             terminal.draw(|frame| {
                 let area: Rect = frame.area();
                 drawn = area;
                 picker.render(area, frame.buffer_mut());
+                // After the cells, before the flush: a backend may overwrite
+                // a fallback with its own cells and write escapes first, so
+                // the picture and the frame reach the terminal together.
+                if let Some(backend) = pictures.0.as_mut() {
+                    let images = picker.images(area);
+                    placed = backend.place(&images, frame.buffer_mut(), &mut io::stdout());
+                }
             })?;
+            placed?;
             dirty = false;
             if first {
                 if let Some(start) = options.timing {

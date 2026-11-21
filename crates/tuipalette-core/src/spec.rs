@@ -195,10 +195,10 @@ impl UiSpec {
                     }
                 }
             }
-            if pane.wrap && pane.kind != Kind::Detail {
+            if pane.wrap && !matches!(pane.kind, Kind::Detail | Kind::Image) {
                 return Err(SpecError::at_path(
                     format!("panes[{i}].wrap"),
-                    "only a Detail wraps its text; `wrap` belongs to one",
+                    "only a Detail or an Image wraps its text; `wrap` belongs to one",
                 ));
             }
             if let Some(click) = pane.click {
@@ -606,6 +606,10 @@ pub enum Kind {
     /// otherwise, centred either way. Draws nothing else and takes no focus.
     #[serde(rename = "Rule")]
     Rule,
+    /// A `Detail` that shows the selected row's `image` where the host can
+    /// draw pictures, and its `detail` text where it cannot (D22).
+    #[serde(rename = "Image")]
+    Image,
 }
 
 /// Where a [`Kind::Counter`] puts its number inside its rect.

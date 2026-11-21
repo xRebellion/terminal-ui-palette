@@ -183,6 +183,7 @@ fn a_menu_reserves_an_icon_column_when_the_pane_asks() {
             icon: Some("ff".to_owned()),
             search: None,
             detail: None,
+            image: None,
           },
         Item::line("kitty"),
         Item {
@@ -191,6 +192,7 @@ fn a_menu_reserves_an_icon_column_when_the_pane_asks() {
             icon: Some(">_".to_owned()),
             search: None,
             detail: None,
+            image: None,
           },
     ]);
     insta::assert_snapshot!("menu_icons", painted(&menu, 28, 6, true));
@@ -217,6 +219,7 @@ fn a_wide_icon_does_not_move_the_columns() {
         icon: Some("🌐".to_owned()),
         search: None,
         detail: None,
+        image: None,
       }]);
     let area = Rect::new(0, 0, 24, 3);
     let mut buf = Buffer::empty(area);
@@ -458,6 +461,38 @@ fn a_wrapping_detail_breaks_between_words() {
         .map(|line| line.chars().skip(9).collect::<String>().trim_end().to_owned())
         .collect();
     assert_eq!(right, vec!["should", "not be", "cut"], "{text}");
+}
+
+// --- the image pane (25) -----------------------------------------------------
+
+const IMAGE_DOC: &str = r##"(window: (title: "t"), layout: (dir: Horizontal, children: [(pane: "m"), (pane: "p")]), panes: [(id: "m", kind: Menu, frame: false), (id: "p", kind: Image, from: "m")])"##;
+
+/// The pane asks for its selected row's picture inside its frame, draws the
+/// row's text as the fallback underneath, and asks for nothing on a row
+/// without a picture — so a text row never shows the last image.
+#[test]
+fn an_image_pane_asks_for_the_selected_picture_and_draws_text_beneath() {
+    let mut picker = Picker::new(spec(IMAGE_DOC)).expect("picker");
+    picker.push(vec![
+        Item { image: Some("/tmp/a.png".to_owned()), detail: Some("[[ binary ]]".to_owned()), ..Item::line("a") },
+        Item { detail: Some("plain text".to_owned()), ..Item::line("b") },
+    ]);
+    let area = Rect::new(0, 0, 20, 6);
+    let images = picker.images(area);
+    assert_eq!(images, vec![tuipalette_core::ImageRequest { rect: Rect::new(11, 1, 8, 4), path: "/tmp/a.png".to_owned() }]);
+    let mut buf = Buffer::empty(area);
+    picker.render(area, &mut buf);
+    assert!(ui::screen(&buf).contains("│[[ binar│"), "the fallback is drawn: {}", ui::screen(&buf));
+    picker.dispatch(Action::Down);
+    assert!(picker.images(area).is_empty());
+}
+
+#[test]
+fn a_document_without_an_image_pane_asks_for_no_pictures() {
+    let text = include_str!("../../../layouts/rofi-like.ron");
+    let mut picker = Picker::new(spec(text)).expect("picker");
+    picker.push(vec![Item { image: Some("/tmp/a.png".to_owned()), ..Item::line("a") }]);
+    assert!(picker.images(Rect::new(0, 0, 60, 14)).is_empty());
 }
 
 // --- the mouse (21) ---------------------------------------------------------
@@ -849,7 +884,7 @@ fn the_icon_slot_keeps_the_text_column_in_all_four_cases() {
         .panes[0];
         let mut menu = Menu::new(pane);
         menu.set_items(vec![
-            Item { display: "firefox".to_owned(), value: "firefox".to_owned(), icon: icon.map(str::to_owned), search: None, detail: None },
+            Item { display: "firefox".to_owned(), value: "firefox".to_owned(), icon: icon.map(str::to_owned), search: None, detail: None, image: None },
             Item::line("kitty"),
         ]);
         let area = Rect::new(0, 0, 24, 4);
@@ -897,6 +932,7 @@ fn a_glyph_too_wide_for_its_slot_falls_back_to_the_placeholder() {
         icon: Some("🎉".to_owned()),
         search: None,
         detail: None,
+        image: None,
       }]);
     let area = Rect::new(0, 0, 20, 3);
     let mut buf = Buffer::empty(area);

@@ -6,6 +6,7 @@
 
 pub mod counter;
 pub mod detail;
+pub mod image;
 pub mod input;
 pub mod menu;
 pub mod rule;
@@ -15,6 +16,7 @@ pub mod text;
 
 pub use counter::CounterPane;
 pub use detail::DetailPane;
+pub use image::ImagePane;
 pub use input::InputLine;
 pub use menu::{Item, Menu, Row};
 pub use rule::Rule;
@@ -36,5 +38,6 @@ pub fn from_pane(pane: &Pane) -> Box<dyn Component> {
         Kind::Detail => Box::new(DetailPane::new(pane)),
         Kind::Counter => Box::new(CounterPane::new(pane)),
         Kind::Rule => Box::new(Rule::new(pane)),
+        Kind::Image => Box::new(ImagePane::new(pane)),
     }
 }
