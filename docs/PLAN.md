@@ -25,7 +25,7 @@ Last updated: 2026-11-21
   - 17 — Revisit the herdr setup and the wifi flow
   - 18 — Ranking: substring before subsequence, and frecency as a tie-break · done 2026-11-21
   - 19 — Clipboard picker: a preview that follows the selection · done 2026-11-17
-  - 20 — Images: the kitty graphics protocol, as a host feature
+  - 20 — Images: the kitty graphics protocol, as a host feature · done 2026-11-21
   - 21 — Mouse: hover, click and wheel · done 2026-11-21
   - 22 — A scrollbar, as a pane option · done 2026-11-18
   - 23 — The item count (`shown/total`) · done 2026-11-18
@@ -172,7 +172,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 14 — it is the fourth migrated call site
 - detail: `docs/specs/19-clipboard.md`
 
-### 20 — Images: the kitty graphics protocol, as a host feature
+### 20 — Images: the kitty graphics protocol, as a host feature · done 2026-11-21
 - The cliphist picker's preview renders images with `kitty +kitten icat`. This library draws text into a cell buffer and promises to be terminal-agnostic (D1, D11), so an image is not a cell and cannot become a `Component` concept without breaking that promise.
 - The decision to make: either a **host-level** escape passthrough — a pane declares a graphics area, the provider supplies a path and the *host* (kitty only) emits the sequence, with every other terminal falling back to the text preview — or keep images out of the library entirely and let the provider open a separate viewer.
 - What is known: kitty's protocol needs a placement rectangle in cells, a delete/refresh discipline when rows move or the selection changes, and a teardown pass so no half-drawn image is left in the alternate screen; fzf solves this outside its own rendering, which is a hint about where it belongs.
@@ -227,6 +227,7 @@ Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the
 - D16 — Pipe escaping: TAB fields by default, `--in json`/`--out json` together for byte-exact values (binds 06, 07)
 - D17 — Search text is a fourth item field, never a display trick: rofi's drun matches five fields and draws one, so `display<TAB>value<TAB>icon<TAB>search`; a hit on `search` scores 1, never highlights, and keeps arrival order (binds 06, 07, 15)
 - D18 — A preview is item data plus a pane that follows a menu, not a command the picker runs: `Item.detail`, `kind: Detail`, `from: "<menu id>"`, copied on every selection change (binds 19, 20)
+- D21 — The clipboard picker is wired without thumbnails: `SUPER+Shift+V` runs `scripts/clipboard.sh`, image rows show cliphist's text line; closes D19 (binds 19, 20)
 - D20 — Ranking is tiered (exact, prefix, word start, anywhere, then fuzzy by score, then hidden-field hits) and the provider's order breaks ties, so usage ranks typed results too (refines D13; binds 18)
 - D19 — The clipboard picker is shelved, not wired: it stays implemented and tested, but `SUPER+Shift+V` keeps the fzf script until images (20), mouse (21), the scrollbar (22) and `49/49` (23) land (binds 19, 20, 21, 22, 23)
 

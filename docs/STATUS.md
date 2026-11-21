@@ -9,8 +9,8 @@ Last updated: 2026-11-21
 - It also says how many rows it found: `kind: Counter` (`format`, `align`) is written by the picker after every refilter — `2/4` on a typed query; the clipboard layout's header row carries it and keeps every digit of a full history — `the_clipboard_count_keeps_every_digit_of_a_full_history` → `250/250`, `133/250`, `1000/1000` at 106x26, and the same three live in tmux (it drew `250/25` before the 2026-11-21 review fix); a counter with no room cuts from the left (`…0/250`)
 - Three of four rofi binds are the picker's, committed in the dotfiles (`02c34c0`): `grep -n TUIPALETTE ~/dotfiles_private/hypr/conf/binds.lua` → `R`, `Space`, `SHIFT + COMMA`; `XF86Calculator` is still `rofi -show calc`
 - The floating rule is installed and committed — `grep -c tuipalette-floating ~/dotfiles_private/hypr/conf/windowrules.lua` → `1`
-- The clipboard picker works (rows, the preview that follows the selection, the paste) but is **shelved**: `SUPER+Shift+V` still runs `cliphist-fzf.fish` until the image consequence of 20's spec is recorded — scrollbar (22), count (23) and mouse (21) are in (D19)
-- Providers answer: `scripts/run-command.sh --list` → `4671`, `scripts/apps.sh` → `106`, `scripts/switch-window.sh --list` → `4` (live clients), `scripts/clipboard.sh --list` → `28`
+- The clipboard picker is on `SUPER+Shift+V` (D21; dotfiles `hypr/conf/binds.lua`): `hyprctl -j configerrors` → none, a new `exec_cmd` handler on SUPER+SHIFT+V; `scripts/clipboard.sh --list` → 30 live entries, Down+Enter on them → `13429`, one click → `13430`. Image rows show `[[ binary data … ]]`, no thumbnail. **Believed until the user's first press:** the copy + paste into the previous window (last seen working 2026-11-17)
+- Providers answer: `scripts/run-command.sh --list` → `4671`, `scripts/apps.sh` → `106`, `scripts/switch-window.sh --list` → `4` (live clients), `scripts/clipboard.sh --list` → `30`
 - Typed queries rank a literal hit above a scattered one, and usage still breaks ties after typing (18, D20) — `examples/rank.rs` on the real app list → `kn`: Arknights: Endfield, Arknights, Konsole (was Konsole first); `pty-check.py … rofi-like.ron 'kn\r'` → `lutris:rungameid/12` (was `konsole`)
 - The mouse works where a document opts in (`window: (mouse: true)`; `rofi-like` and `clipboard` do): hover tints without selecting; a click accepts in one go (`click: Accept`, what both shipped layouts use, as rofi does) or selects with a second click accepting (`click: Select`, the default); the wheel moves three rows, a click on the query focuses it — `pty-check.py` with SGR sequences into `layouts/rofi-like.ron` over 200 rows → one click `row 003`, 10 notches + Enter `row 031`; capture released on Escape (`ESC[?1000l`); `dmenu.ron` never enables it
 
@@ -29,14 +29,13 @@ Last updated: 2026-11-21
 | `layouts/` | four documents — `rofi-like`, `dmenu`, `wifi`, `clipboard` (6 panes, the only one with a counter) — all `--check` clean, no crate naming them | the `--check` loop above |
 | `scripts/` | providers and the floating adapter; the counts above | `--list` on each provider |
 | cliphist history | 28 rows, capped at 250 (`~/.config/cliphist/config` → `max-items 250`), both `wl-paste` watchers running | `cliphist list \| wc -l`; `pgrep -a wl-paste` |
-| `~/.config/hypr` (symlink into `~/dotfiles_private/hypr`) | binds and window rule committed at `02c34c0`; the checkout is dirty only in `pi/` files unrelated to this project | `git -C ~/dotfiles_private status --porcelain -- hypr` → no lines |
+| `~/.config/hypr` (symlink into `~/dotfiles_private/hypr`) | the four picker binds (R, Space, SHIFT+COMMA, SHIFT+V) and the window rule committed; `XF86Calculator` is still rofi | `git -C ~/dotfiles_private status --porcelain -- hypr` → no lines |
 | host toolchain | rustc/cargo 1.95.0 | `cargo --version` |
 
 ## Next steps
-- [ ] 20 — the spec is written and decides **no graphics in v1** (`docs/specs/20-images.md`, committed); what is left is the user's choice for D19 — unshelve with image rows as text, or keep fzf for images — recorded as a new decision (D21), then 20 is done
+- [ ] confirm the clipboard picker's paste on the user's first `SUPER+Shift+V` (pick an entry, see it pasted into the window that had focus); a failure there is in `scripts/clipboard.sh --paste`, not the picker
 - [ ] 16 — rules: conditional actions and document transitions; it blocks 17, and it is where accept-on-empty becomes data
 - [ ] 17 — revisit herdr and the wifi flow against `docs/specs/17-revisit.md`
-- [ ] rewire `SUPER+Shift+V` to `scripts/clipboard.sh` and unshelve it (closes D19) — after D21
 - [ ] no plan item covers `XF86Calculator` (`rofi -show calc`, benched in 14 for want of an expression component), and the goal says no rofi call remains on a keybind — add an item or narrow the goal
 
 ## How to reproduce the verification
