@@ -23,7 +23,7 @@ Last updated: 2026-11-21
   - 11 — Spec reference and component guide · done 2026-11-16
   - 16 — Conditional actions and document transitions
   - 17 — Revisit the herdr setup and the wifi flow
-  - 18 — Ranking: substring before subsequence, and frecency as a tie-break
+  - 18 — Ranking: substring before subsequence, and frecency as a tie-break · done 2026-11-21
   - 19 — Clipboard picker: a preview that follows the selection · done 2026-11-17
   - 20 — Images: the kitty graphics protocol, as a host feature
   - 21 — Mouse: hover, click and wheel
@@ -156,12 +156,12 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 16 — conditional actions are where `-e`, `-auto-select` and the `+`/`-` rows land
 - detail: `docs/specs/17-revisit.md`
 
-### 18 — Ranking: substring before subsequence, and frecency as a tie-break
+### 18 — Ranking: substring before subsequence, and frecency as a tie-break · done 2026-11-21
 - Observed while using the migrated binds: typing `kni` in the app picker lists `KDE Connect Indicator` above `Arknights`, which contains the query as a literal substring. fzf ranks them the same way, so this is the algorithm rather than a defect in our use of nucleo — but it is not what a launcher should do.
 - Proposal: (a) a literal substring hit outranks any scattered subsequence hit; (b) ties break by shorter display, then arrival order; (c) usage from `scripts/usage.sh` becomes a documented tie-break, so it also orders *filtered* results and not just the empty query.
 - Observed again 2026-11-21: `kn` puts `Konsole` first and leaves `Arknights` — a literal `kn`, and the most-launched of the two in `usage.tsv` — off the top four. Proposal (a) fixes it alone; (c) would as well.
 - checkable: a before/after table for the queries `kni`, `kn`, `fire`, `code` (top five rows each), a test pinning each row's order, and `scripts/usage.sh` still working unchanged.
-- after: 17 — the revisit decides what stays in the providers
+- after: 07 — relaxed from 17 by the user on 2026-11-21: the fix lives in the core and changes no provider (D20)
 - detail: `docs/specs/18-ranking.md`
 
 ### 19 — Clipboard picker: a preview that follows the selection · done 2026-11-17
@@ -227,6 +227,7 @@ Full entries and rationale live in `docs/DECISIONS.md`, append-only; this is the
 - D16 — Pipe escaping: TAB fields by default, `--in json`/`--out json` together for byte-exact values (binds 06, 07)
 - D17 — Search text is a fourth item field, never a display trick: rofi's drun matches five fields and draws one, so `display<TAB>value<TAB>icon<TAB>search`; a hit on `search` scores 1, never highlights, and keeps arrival order (binds 06, 07, 15)
 - D18 — A preview is item data plus a pane that follows a menu, not a command the picker runs: `Item.detail`, `kind: Detail`, `from: "<menu id>"`, copied on every selection change (binds 19, 20)
+- D20 — Ranking is tiered (exact, prefix, word start, anywhere, then fuzzy by score, then hidden-field hits) and the provider's order breaks ties, so usage ranks typed results too (refines D13; binds 18)
 - D19 — The clipboard picker is shelved, not wired: it stays implemented and tested, but `SUPER+Shift+V` keeps the fzf script until images (20), mouse (21), the scrollbar (22) and `49/49` (23) land (binds 19, 20, 21, 22, 23)
 
 ## Risks

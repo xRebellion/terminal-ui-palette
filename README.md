@@ -185,8 +185,8 @@ Whole path including the terminal's own spawn: 117–132 ms (kitty), 86–97 ms
 ## Roadmap
 
 Open: conditional actions and document transitions (16), the herdr and wifi
-revisit (17), ranking — literal substring before subsequence, frecency as a
-tie-break (18).
+revisit (17). Ranking (18) is done: a literal hit outranks a scattered one, and
+the provider's usage order breaks ties after typing too (D20).
 
 Also open: mouse support — hover, click and wheel (21). Decided against for v1,
 with the evidence in `docs/specs/20-images.md`: images over the kitty graphics

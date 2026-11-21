@@ -245,6 +245,70 @@ fn the_picker_drains_a_live_source() {
     assert_eq!(picker.rows().len(), 1);
 }
 
+// --- ranking (18) -----------------------------------------------------------
+
+/// The default (nucleo) picker over `names`, in this arrival order, with
+/// `query` typed: the displays it shows, best first.
+fn ranked(names: &[&str], query: &str) -> Vec<String> {
+    let spec = UiSpec::parse(PICKER, Format::Ron).expect("spec");
+    let mut picker = Picker::new(spec).expect("picker");
+    picker.push(items(names));
+    for c in query.chars() {
+        picker.on_key(Key::new(KeyCode::Char(c), Mods::NONE));
+    }
+    picker.rows().into_iter().map(|row| row.item.display).collect()
+}
+
+/// The user's report: `kn` led with Konsole (a scattered K…n with word-start
+/// bonuses) over Arknights, which holds `kn` literally. A literal hit now
+/// outranks every scattered one, whatever the scorer's number says.
+#[test]
+fn a_literal_hit_outranks_a_scattered_one() {
+    let names = ["Konsole", "KDE Connect Indicator", "Arknights", "CachyOS Kernel Manager"];
+    let rows = ranked(&names, "kn");
+    assert_eq!(rows[0], "Arknights", "{rows:?}");
+    assert_eq!(rows.len(), 4, "the scattered rows still match: {rows:?}");
+    let rows = ranked(&names, "kni");
+    assert_eq!(rows[0], "Arknights", "{rows:?}");
+}
+
+/// Literal hits order among themselves by where they hit — the whole name,
+/// its start, a word's start, anywhere — and only then by arrival.
+#[test]
+fn literal_hits_rank_exact_then_prefix_then_word_then_inside() {
+    let names = ["Bookmarks", "Ark Manager", "Arknights", "Ark", "Spark"];
+    assert_eq!(
+        ranked(&names, "ark"),
+        vec!["Ark", "Ark Manager", "Arknights", "Bookmarks", "Spark"],
+    );
+    let names = ["Bookmark Ark", "Spark"];
+    assert_eq!(ranked(&names, "ark"), vec!["Bookmark Ark", "Spark"], "a word start beats inside a word");
+}
+
+/// Inside a tier the provider's order is kept. That is how usage ranks typed
+/// results without the library knowing about it: `usage.sh` hands the list
+/// over most-recent first.
+#[test]
+fn equally_good_hits_keep_the_providers_order() {
+    let recent_first = ["Arknights", "Arknights: Endfield", "Konsole"];
+    assert_eq!(ranked(&recent_first, "kn")[..2], ["Arknights", "Arknights: Endfield"]);
+    let other_way = ["Arknights: Endfield", "Arknights", "Konsole"];
+    assert_eq!(ranked(&other_way, "kn")[..2], ["Arknights: Endfield", "Arknights"]);
+}
+
+/// A literal row is highlighted where it matched literally, not where the
+/// fuzzy scorer would have put its characters.
+#[test]
+fn a_literal_row_highlights_the_run_it_matched() {
+    let spec = UiSpec::parse(PICKER, Format::Ron).expect("spec");
+    let mut picker = Picker::new(spec).expect("picker");
+    picker.push(items(&["Arknights"]));
+    for c in "kn".chars() {
+        picker.on_key(Key::new(KeyCode::Char(c), Mods::NONE));
+    }
+    assert_eq!(picker.rows()[0].positions, vec![2, 3]);
+}
+
 #[test]
 fn a_nucleo_picker_fuzzes_where_the_simple_one_does_not() {
     let names = ["firefox", "kitty"];

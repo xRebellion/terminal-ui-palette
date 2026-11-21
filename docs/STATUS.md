@@ -2,7 +2,7 @@
 Last updated: 2026-11-21
 
 ## What works
-- The workspace builds and every suite passes — `cargo test --workspace` → `104 passed, 0 failed` (core 89, tui 4, bin 11)
+- The workspace builds and every suite passes — `cargo test --workspace` → `112 passed, 0 failed` (core 97, tui 4, bin 11)
 - All four shipped documents validate, so a schema change has a cheap gate — `for f in layouts/*.ron; do tuipalette --check --spec $f; done` → `clipboard.ron: ok — 6 panes, 2 bindings`, `dmenu.ron: ok — 3 panes, 1 binding`, `rofi-like.ron: ok — 3 panes, 2 bindings`, `wifi.ron: ok — 3 panes, 2 bindings`
 - The dmenu contract is driven without a terminal emulator: items in, keys, one value out — `scripts/pty-check.py ./target/release/tuipalette layouts/dmenu.ron '\x1b[B\r'` → `exit=0 value=b'b\n'`
 - A long list says where in it you are, in whichever of two styles the document asks for: `scrollbar: true` on a `Menu` draws a proportional thumb in the pane's last column and `scrollbar_style` picks the drawing — `Background` (the default: `scrollbar_bg`/`scrollbar` as cell backgrounds, the way tmux and helix draw one) or `Glyph` (`░`/`█`, the only style a text snapshot shows); off by default so no shipped document moved — `cargo test -p tuipalette-core --test components` → `28 passed`, 12 snapshots including `menu_scrollbar`/`menu_scrollbar_end`, and a live 200-row run puts the thumb on the same row in both styles (`....T_______..` → `....___T____..` after 100 `Down`s)
@@ -11,10 +11,10 @@ Last updated: 2026-11-21
 - The floating rule is installed and committed — `grep -c tuipalette-floating ~/dotfiles_private/hypr/conf/windowrules.lua` → `1`
 - The clipboard picker works (rows, the preview that follows the selection, the paste) but is **shelved**: `SUPER+Shift+V` still runs `cliphist-fzf.fish` until mouse (21) lands and the image consequence of 20's spec is recorded — the scrollbar (22) and the count (23) are in (D19)
 - Providers answer: `scripts/run-command.sh --list` → `4671`, `scripts/apps.sh` → `106`, `scripts/switch-window.sh --list` → `4` (live clients), `scripts/clipboard.sh --list` → `28`
+- Typed queries rank a literal hit above a scattered one, and usage still breaks ties after typing (18, D20) — `examples/rank.rs` on the real app list → `kn`: Arknights: Endfield, Arknights, Konsole (was Konsole first); `pty-check.py … rofi-like.ron 'kn\r'` → `lutris:rungameid/12` (was `konsole`)
 
 ## Known broken and believed
 - **Known gap:** enter with no match does nothing unless the caller passes `--accept-query` — `pty-check.py … 'zzz\r'` → no exit within the harness's 10 s, against `exit=0 value=b'zzz\n'` with the flag. A document cannot decide it yet; that is 16's `rules`. Blocks next step: no
-- **Known, user-facing — ranking (18):** `kn` in the app picker puts Konsole first and Arknights nowhere near it, although Arknights holds `kn` as a literal substring and has 5 recorded launches (Konsole has none) — `PTY07_ITEMS_FILE=<apps.sh | usage.sh order 2> pty-check.py … layouts/rofi-like.ron 'kn\r' ''` → `konsole`, then `cachyos-kernel-manager`, `kdeconnect-indicator`, `kdeconnect-app` on the next three rows. Two causes: nucleo's word-start bonus on `K`-`o`-`n` beats the adjacent `kn` inside a word, and usage only orders the empty query (`usage.sh` pre-sorts; `Picker::refilter` sorts by score with arrival order as the only tie-break). Blocks next step: no; it is the user's top concern
 - **Thin cover:** `--out-file` is exercised end to end only by `scripts/verify-floating.sh`; there is no smaller test naming the write path. Blocks next step: no
 - **Believed:** `scripts/apps.sh` mis-lists applications on a multi-locale system (first `Name=`, no `TryExec`) — would confirm by running it under `LANG=de_DE.UTF-8` against `rofi -show drun`
 
@@ -32,12 +32,11 @@ Last updated: 2026-11-21
 | host toolchain | rustc/cargo 1.95.0 | `cargo --version` |
 
 ## Next steps
-- [ ] 20 — the spec is written and decides **no graphics in v1** (`docs/specs/20-images.md`, committed); what is left is the user's choice for D19 — unshelve with image rows as text, or keep fzf for images — recorded as D20, then 20 is done
+- [ ] 20 — the spec is written and decides **no graphics in v1** (`docs/specs/20-images.md`, committed); what is left is the user's choice for D19 — unshelve with image rows as text, or keep fzf for images — recorded as a new decision (D21), then 20 is done
 - [ ] 21 — mouse capture, hover, click and wheel, opt-in via `window: (mouse: true)` — SGR sequences driven through `scripts/pty-check.py`
-- [ ] 16 — rules: conditional actions and document transitions; it blocks 17, which blocks 18, and it is where accept-on-empty becomes data
+- [ ] 16 — rules: conditional actions and document transitions; it blocks 17, and it is where accept-on-empty becomes data
 - [ ] 17 — revisit herdr and the wifi flow against `docs/specs/17-revisit.md`
-- [ ] 18 — ranking: literal substring before subsequence, then shorter display, then frecency as a documented tie-break — the `kn` → Konsole-over-Arknights case is (a) exactly; declared `after: 17`, which the user may choose to relax (its stated reason is provider scope, and this is core ranking)
-- [ ] rewire `SUPER+Shift+V` to `scripts/clipboard.sh` and unshelve it (closes D19) — after D20 and 21
+- [ ] rewire `SUPER+Shift+V` to `scripts/clipboard.sh` and unshelve it (closes D19) — after D21 and item 21
 - [ ] no plan item covers `XF86Calculator` (`rofi -show calc`, benched in 14 for want of an expression component), and the goal says no rofi call remains on a keybind — add an item or narrow the goal
 
 ## How to reproduce the verification

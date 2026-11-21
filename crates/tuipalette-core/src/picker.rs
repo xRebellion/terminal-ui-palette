@@ -11,6 +11,7 @@ use crate::components::{CounterPane, DetailPane, Item, Menu, Row};
 use crate::error::SpecError;
 use crate::key::Key;
 use crate::matcher::{default_matcher, Matcher};
+use crate::rank::{self, Tier};
 use crate::session::{Outcome, Session};
 use crate::spec::{Kind, UiSpec};
 use crate::{Buffer, Rect};
@@ -204,20 +205,29 @@ impl Picker {
     }
 
     /// Re-score everything against the query and hand the surviving rows to the
-    /// menu. Score decides the order; equal scores keep arrival order.
+    /// menu. The match tier decides the order, then — in the fuzzy tier only —
+    /// the scorer's number, then arrival order, which is the provider's own
+    /// ranking (usage, for the launchers). See `rank.rs` and D20.
     fn refilter(&mut self) {
         let Some(menu) = self.menu.clone() else {
             self.sync_counters();
             return;
         };
         self.matcher.set_query(&self.query);
-        let mut scored: Vec<(u32, usize, Row)> = self
+        let query = self.query.trim();
+        let mut scored: Vec<(Tier, u32, usize, Row)> = self
             .items
             .iter()
             .enumerate()
             .filter_map(|(index, item)| {
-                let (score, positions) = match self.matcher.score(&item.display) {
-                    Some(hit) => (hit.score, hit.positions),
+                // A literal hit is ranked by its tier alone and highlighted
+                // where it was found, so the colour agrees with the reason.
+                if let Some((tier, positions)) = rank::literal(query, &item.display) {
+                    let row = Row { item: item.clone(), positions };
+                    return Some((tier, 0, index, row));
+                }
+                let (tier, score, positions) = match self.matcher.score(&item.display) {
+                    Some(hit) => (Tier::Fuzzy, hit.score, hit.positions),
                     None => {
                         // The row is found by words it does not show (its value,
                         // or the provider's search text). It is a real hit, but
@@ -232,10 +242,11 @@ impl Picker {
                                 .and_then(|search| self.matcher.score(search))
                         });
                         found?;
-                        (HIDDEN_MATCH, Vec::new())
+                        (Tier::Hidden, 0, Vec::new())
                     }
                 };
                 Some((
+                    tier,
                     score,
                     index,
                     Row {
@@ -246,9 +257,9 @@ impl Picker {
             })
             .collect();
         if self.sorting {
-            scored.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+            scored.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)).then(a.2.cmp(&b.2)));
         }
-        let rows = scored.into_iter().map(|(_, _, row)| row).collect();
+        let rows = scored.into_iter().map(|(_, _, _, row)| row).collect();
         if let Some(menu) = self.session.pane_mut::<Menu>(&menu) {
             menu.set_rows(rows);
         }
@@ -306,10 +317,6 @@ fn detail_links(spec: &UiSpec) -> Vec<(String, String)> {
         })
         .collect()
 }
-
-/// What a hit on a word the row does not show is worth: above nothing, below
-/// every display match, so those rows sort with the rest but after them.
-const HIDDEN_MATCH: u32 = 1;
 
 fn first_of_kind(spec: &UiSpec, kind: Kind) -> Option<String> {
     spec.panes

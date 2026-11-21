@@ -14,6 +14,7 @@ pub mod keymap;
 pub mod layout;
 pub mod matcher;
 pub mod picker;
+pub mod rank;
 pub mod source;
 pub mod session;
 pub mod spec;

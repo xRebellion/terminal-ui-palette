@@ -199,7 +199,7 @@ A line without a tab is both display and value, which is what makes `printf 'a\n
 
 The search field is how a provider lends the matcher words the row should be found by but not drawn with. rofi's drun does the same: it matches Name, GenericName, Exec, Categories and Keywords while showing only the Name, which is why typing `seahorse` there finds "Passwords and Keys". `scripts/apps.sh` emits those five fields in this slot.
 
-Ranking: a row matching on its display is scored by the matcher and its characters are highlighted. A row found only through its value or search text is a real hit, keeps arrival order among its peers (so a usage-ordered list stays usage-ordered), and is never highlighted, because positions index the display. Both kinds rank below every display match.
+Ranking (D20): a row whose display holds the query **literally** ranks above any scattered match, in four tiers — the display is the query, starts with it, has a word starting with it, contains it — and is highlighted where it matched. Then come the matcher's fuzzy hits, best score first. Last come rows found only through their value or search text: real hits, never highlighted, because positions index the display. Inside a tier the order the rows arrived in is kept, so a provider that sends its list most-used first (`scripts/usage.sh`) is ranked by usage *after* typing too. Smart case throughout: a query with an upper-case letter matches case exactly. `kn` therefore finds Ar**kn**ights before **K**o**n**sole.
 
 `--in json` reads one object per line instead: `{"display": "…", "value": "…", "icon": "…", "search": "…", "detail": "…"}`, same rules. Expressing a detail longer than one line is the reason it exists: in the TAB protocol a newline would end the item.
 
