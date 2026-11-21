@@ -7,7 +7,7 @@
 use std::sync::mpsc::{Receiver, TryRecvError};
 
 use crate::action::Action;
-use crate::components::{DetailPane, Item, Menu, Row};
+use crate::components::{CounterPane, DetailPane, Item, Menu, Row};
 use crate::error::SpecError;
 use crate::key::Key;
 use crate::matcher::{default_matcher, Matcher};
@@ -31,6 +31,9 @@ pub struct Picker {
     accept_query: bool,
     /// Pairs of (menu pane, detail pane): the preview follows the menu.
     detail_links: Vec<(String, String)>,
+    /// The panes that show `shown/total`. There may be more than one, and none
+    /// is fine — a document without a counter is the document it always was.
+    counters: Vec<String>,
 }
 
 impl Picker {
@@ -38,6 +41,7 @@ impl Picker {
         let input = first_of_kind(&spec, Kind::Input);
         let menu = first_of_kind(&spec, Kind::Menu);
         let detail_links = detail_links(&spec);
+        let counters = ids_of_kind(&spec, Kind::Counter);
         let session = Session::from_spec(spec)?;
         let mut picker = Self {
             session,
@@ -49,8 +53,10 @@ impl Picker {
             sorting: true,
             accept_query: false,
             detail_links,
+            counters,
         };
         picker.sync_detail();
+        picker.sync_counters();
         Ok(picker)
     }
 
@@ -201,6 +207,7 @@ impl Picker {
     /// menu. Score decides the order; equal scores keep arrival order.
     fn refilter(&mut self) {
         let Some(menu) = self.menu.clone() else {
+            self.sync_counters();
             return;
         };
         self.matcher.set_query(&self.query);
@@ -246,6 +253,7 @@ impl Picker {
             menu.set_rows(rows);
         }
         self.sync_detail();
+        self.sync_counters();
     }
 
     /// Copy the selected row's detail into every detail pane that follows
@@ -260,6 +268,26 @@ impl Picker {
                 .and_then(|item| item.detail.clone());
             if let Some(pane) = self.session.pane_mut::<DetailPane>(&detail) {
                 pane.set_text(text);
+            }
+        }
+    }
+
+    /// Write both numbers into every counter pane. The picker is the only
+    /// thing that holds them: what arrived lives here, what survived lives in
+    /// the menu, and the total is the larger of the two — a document whose menu
+    /// declares its rows statically has no streamed items at all, and its
+    /// counter still has to say how many rows there are (docs/PLAN.md, 23).
+    fn sync_counters(&mut self) {
+        let shown = self
+            .menu
+            .as_deref()
+            .and_then(|id| self.session.pane::<Menu>(id))
+            .map(|menu| menu.rows().len())
+            .unwrap_or(0);
+        let total = self.items.len().max(shown);
+        for id in self.counters.clone() {
+            if let Some(pane) = self.session.pane_mut::<CounterPane>(&id) {
+                pane.set_counts(shown, total);
             }
         }
     }
@@ -288,4 +316,13 @@ fn first_of_kind(spec: &UiSpec, kind: Kind) -> Option<String> {
         .iter()
         .find(|pane| pane.kind == kind)
         .map(|pane| pane.id.clone())
+}
+
+/// Every pane of a kind, in declaration order.
+fn ids_of_kind(spec: &UiSpec, kind: Kind) -> Vec<String> {
+    spec.panes
+        .iter()
+        .filter(|pane| pane.kind == kind)
+        .map(|pane| pane.id.clone())
+        .collect()
 }

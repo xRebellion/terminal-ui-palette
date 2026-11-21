@@ -4,7 +4,7 @@ expression: "ui::screen(&buf)"
 ---
 ╭──────────────────────────────────────────────────────────────╮
 │> ▏                      ╭──────────────────────────────────╮ │
-│Clipboard History        │second entry                      │ │
+│Clipboard History     2/2│second entry                      │ │
 │  13127  [[ binary data 1│                                  │ │
 │› 13126  Short answer: on│                                  │ │
 │                         │                                  │ │

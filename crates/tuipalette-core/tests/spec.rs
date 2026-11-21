@@ -4,7 +4,7 @@
 use ratatui_core::layout::Constraint;
 use tuipalette_core::Rect;
 use tuipalette_core::layout::{parse_constraint, resolve};
-use tuipalette_core::spec::{Format, UiSpec};
+use tuipalette_core::spec::{Format, ScrollbarStyle, UiSpec};
 
 fn fixture(format: Format) -> &'static str {
     match format {
@@ -230,6 +230,110 @@ fn colours_are_hex_or_nothing() {
         )
         .is_ok()
     );
+}
+
+#[test]
+fn a_counter_format_names_only_its_two_placeholders() {
+    const BAD: &str = r##"(
+            window: (title: "x"),
+            layout: (pane: "c"),
+            panes: [(id: "c", kind: Counter, format: "{rows}/{total}")],
+        )"##;
+    let error = spec(BAD).unwrap_err();
+    assert!(error.contains("panes[0].format"), "{error}");
+    assert!(error.contains("{rows}"), "{error}");
+
+    const GOOD: &str = r##"(
+            window: (title: "x"),
+            layout: (pane: "c"),
+            panes: [(id: "c", kind: Counter, format: "{shown} of {total}", align: Center)],
+        )"##;
+    assert!(spec(GOOD).is_ok());
+}
+
+/// The quoted fragment is a piece of what the document wrote, even when a
+/// valid placeholder sits inside or next to the broken one.
+#[test]
+fn a_counter_format_error_quotes_the_documents_own_text() {
+    for (format, quoted) in [
+        ("{sho{total}wn}", "`{sho`"),
+        ("{{shown}}", "`{`"),
+        ("{shown}/{total}}", "`}`"),
+        ("{shown} of {rows", "`{rows`"),
+    ] {
+        let text = format!(
+            "(window: (title: \"x\"), layout: (pane: \"c\"), panes: [(id: \"c\", kind: Counter, format: \"{format}\")])"
+        );
+        let error = spec(&text).unwrap_err();
+        assert!(error.contains(&format!("{quoted} cannot be filled in")), "{format}: {error}");
+    }
+}
+
+/// `align` alone on the wrong pane is reported as `align`, not as `format`.
+#[test]
+fn a_stray_counter_field_is_named_as_written() {
+    for (field, value) in [("align", "Right"), ("format", "\"{shown}\"")] {
+        let text = format!(
+            "(window: (title: \"x\"), layout: (pane: \"t\"), panes: [(id: \"t\", kind: Text, {field}: {value})])"
+        );
+        let error = spec(&text).unwrap_err();
+        assert!(error.contains(&format!("panes[0].{field}:")), "{field}: {error}");
+    }
+}
+
+#[test]
+fn a_scrollbar_belongs_to_a_menu() {
+    const NOT_A_LIST: &str = r#"(
+            window: (title: "x"),
+            layout: (pane: "t"),
+            panes: [(id: "t", kind: Text, scrollbar: true)],
+        )"#;
+    let error = spec(NOT_A_LIST).unwrap_err();
+    assert!(error.contains("panes[0].scrollbar"), "{error}");
+
+    const A_LIST: &str = r#"(
+            window: (title: "x"),
+            layout: (pane: "m"),
+            panes: [(id: "m", kind: Menu, scrollbar: true)],
+        )"#;
+    assert!(spec(A_LIST).is_ok());
+}
+
+/// The bar's style is per pane, optional, and defaults to the tinted background
+/// a terminal scrollbar is drawn as (docs/specs/22-scrollbar.md). A style on a
+/// pane that draws no bar is a typo, not a no-op, so it is refused by name.
+#[test]
+fn a_scrollbar_style_belongs_to_a_bar_that_is_drawn() {
+    const DEFAULT: &str = r#"(
+            window: (title: "x"),
+            layout: (pane: "m"),
+            panes: [(id: "m", kind: Menu, scrollbar: true)],
+        )"#;
+    assert_eq!(spec(DEFAULT).unwrap().panes[0].scrollbar_style(), ScrollbarStyle::Background);
+
+    const GLYPH: &str = r#"(
+            window: (title: "x"),
+            layout: (pane: "m"),
+            panes: [(id: "m", kind: Menu, scrollbar: true, scrollbar_style: Glyph)],
+        )"#;
+    assert_eq!(spec(GLYPH).unwrap().panes[0].scrollbar_style(), ScrollbarStyle::Glyph);
+
+    const NO_BAR: &str = r#"(
+            window: (title: "x"),
+            layout: (pane: "m"),
+            panes: [(id: "m", kind: Menu, scrollbar_style: Glyph)],
+        )"#;
+    let error = spec(NO_BAR).unwrap_err();
+    assert!(error.contains("panes[0].scrollbar_style"), "{error}");
+    assert!(error.contains("scrollbar: true"), "{error}");
+
+    const NOT_A_LIST: &str = r#"(
+            window: (title: "x"),
+            layout: (pane: "t"),
+            panes: [(id: "t", kind: Text, scrollbar_style: Glyph)],
+        )"#;
+    let error = spec(NOT_A_LIST).unwrap_err();
+    assert!(error.contains("panes[0].scrollbar_style"), "{error}");
 }
 
 #[test]

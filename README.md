@@ -61,9 +61,9 @@ wrong (with the path, line and column), `2` unusable host or flags.
 | concept | what it buys |
 |---|---|
 | `layout` | one tree of splits and leaves; sizes are `N`, `N%`, `fill`, `min:N`, `max:N` |
-| `panes` | `Input`, `Menu`, `Status`, `Text`, `Spacer`, `Detail` — plus your own, as a `Component` impl and a recompile (D5) |
+| `panes` | `Input`, `Menu`, `Status`, `Text`, `Spacer`, `Detail`, `Counter` — plus your own, as a `Component` impl and a recompile (D5) |
 | `keys` | global map + per-pane overrides; `None` clears an inherited bind (D8) |
-| `theme` | four colours (`accent`, `selected_bg`, `text`, `dim`) plus an icon placeholder glyph, `#rrggbb` only |
+| `theme` | six colours (`accent`, `selected_bg`, `text`, `dim`, `scrollbar`, `scrollbar_bg`) plus an icon placeholder glyph, `#rrggbb` only |
 | `host` | a hint for the launcher: cell size and window class. The library never places a window (D3) |
 | `window.frame` | one border around everything, instead of one per pane |
 
@@ -186,12 +186,13 @@ Whole path including the terminal's own spawn: 117–132 ms (kitty), 86–97 ms
 
 Open: conditional actions and document transitions (16), the herdr and wifi
 revisit (17), ranking — literal substring before subsequence, frecency as a
-tie-break (18), a scrollbar (22), the `shown/total` counter (23).
+tie-break (18).
 
-Shelved with their reason recorded: images over the kitty graphics protocol (20)
-— an image is not a cell, so it belongs to a host, not the core — and mouse
-support (21). The clipboard picker is implemented but not wired to a keybind
-until those land (D19).
+Also open: mouse support — hover, click and wheel (21). Decided against for v1,
+with the evidence in `docs/specs/20-images.md`: images over the kitty graphics
+protocol (20) — an image is not a cell, so it belongs to a host, not the core.
+The clipboard picker is implemented but not wired to a keybind until mouse lands
+and the image question is settled for it (D19).
 
 ## License
 

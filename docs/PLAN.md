@@ -1,5 +1,5 @@
 # terminal-ui-lib — Plan
-Last updated: 2026-11-18
+Last updated: 2026-11-21
 
 ## Contents
 - Goal
@@ -27,8 +27,8 @@ Last updated: 2026-11-18
   - 19 — Clipboard picker: a preview that follows the selection · done 2026-11-17
   - 20 — Images: the kitty graphics protocol, as a host feature
   - 21 — Mouse: hover, click and wheel
-  - 22 — A scrollbar, as a pane option
-  - 23 — The item count (`shown/total`)
+  - 22 — A scrollbar, as a pane option · done 2026-11-18
+  - 23 — The item count (`shown/total`) · done 2026-11-18
   - 24 — A README that is true · done 2026-11-17
 - Decisions
 - Risks
@@ -159,7 +159,8 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 ### 18 — Ranking: substring before subsequence, and frecency as a tie-break
 - Observed while using the migrated binds: typing `kni` in the app picker lists `KDE Connect Indicator` above `Arknights`, which contains the query as a literal substring. fzf ranks them the same way, so this is the algorithm rather than a defect in our use of nucleo — but it is not what a launcher should do.
 - Proposal: (a) a literal substring hit outranks any scattered subsequence hit; (b) ties break by shorter display, then arrival order; (c) usage from `scripts/usage.sh` becomes a documented tie-break, so it also orders *filtered* results and not just the empty query.
-- checkable: a before/after table for the queries `kni`, `fire`, `code` (top five rows each), a test pinning each row's order, and `scripts/usage.sh` still working unchanged.
+- Observed again 2026-11-21: `kn` puts `Konsole` first and leaves `Arknights` — a literal `kn`, and the most-launched of the two in `usage.tsv` — off the top four. Proposal (a) fixes it alone; (c) would as well.
+- checkable: a before/after table for the queries `kni`, `kn`, `fire`, `code` (top five rows each), a test pinning each row's order, and `scripts/usage.sh` still working unchanged.
 - after: 17 — the revisit decides what stays in the providers
 - detail: `docs/specs/18-ranking.md`
 
@@ -185,7 +186,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - checkable: `docs/specs/21-mouse.md`; `scripts/pty-check.py` driving SGR mouse sequences (`ESC[<0;x;yM`/`m`) into a real run of `layouts/rofi-like.ron`: hover moves the highlight, click accepts the row under the pointer, wheel scrolls a 200-row list.
 - after: 19 — the rects and the pane dispatch it needs are what 19 touched last
 - detail: `docs/specs/21-mouse.md`
-### 22 — A scrollbar, as a pane option
+### 22 — A scrollbar, as a pane option · done 2026-11-18
 - fzf has `--scrollbar[=C1[C2]]` (off by default, which is why the original capture had none) and draws it in the list's last column. Ours has nothing: a long list gives no sense of where you are or how much is left.
 - Proposal: `scrollbar: true` on a `Menu` (default `false`, so no existing document changes shape), drawn in the pane's rightmost column, one cell taken from the text, shown only when the rows exceed the visible window — with a proportional thumb, so 12 rows in a 200-row list is a short bar in the right place. `Theme` gains `scrollbar` (thumb) and `scrollbar_bg`; the colours are tokens like the rest.
 - `ratatui 0.30` has `Scrollbar`/`ScrollbarState` in `ratatui-widgets`, which render into a plain `Buffer`, so this stays inside D1. The menu already computes the first visible row (`Menu::window`); the thumb is that number over the row count.
@@ -193,7 +194,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 19 — the pane options it extends
 - detail: `docs/specs/22-scrollbar.md`
 
-### 23 — The item count (`shown/total`)
+### 23 — The item count (`shown/total`) · done 2026-11-18
 - fzf's info line prints `49/49` — matched rows over everything the provider sent — and it is the one piece of chrome the clipboard layout still misses (`docs/specs/19-clipboard.md`: "no counter"). Right now nothing in the picker knows the totals, because the picker keeps them and the panes do not.
 - Proposal: `kind: Counter`, whose text the picker writes after every refilter — `3/49` by default, with `format: "{shown} of {total}"` if a document wants words, and `align: Right` because that is where fzf puts it. It is the same mechanism as `Detail` (the picker owns a value a pane displays), so it costs a `set_text` the picker already knows how to call.
 - checkable: a snapshot with a typed query (`2/4`), a test that the number follows both typing and streaming rows, and the clipboard layout's header row showing it beside "Clipboard History".

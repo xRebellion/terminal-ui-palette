@@ -4,6 +4,7 @@
 //! library knows they exist — a picker's own component is just another
 //! `Component` impl handed to `Session` (docs/PLAN.md, D5).
 
+pub mod counter;
 pub mod detail;
 pub mod input;
 pub mod menu;
@@ -11,6 +12,7 @@ pub mod spacer;
 pub mod status;
 pub mod text;
 
+pub use counter::CounterPane;
 pub use detail::DetailPane;
 pub use input::InputLine;
 pub use menu::{Item, Menu, Row};
@@ -30,5 +32,6 @@ pub fn from_pane(pane: &Pane) -> Box<dyn Component> {
         Kind::Status => Box::new(StatusLine::new(pane)),
         Kind::Spacer => Box::new(Spacer::new(pane)),
         Kind::Detail => Box::new(DetailPane::new(pane)),
+        Kind::Counter => Box::new(CounterPane::new(pane)),
     }
 }

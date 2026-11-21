@@ -1,13 +1,16 @@
 //! The list: rows, a selection that clamps at both ends, a window that keeps the
-//! selection on screen, an icon column when the pane asks for one, and the
-//! matched characters of a query drawn differently from the rest.
+//! selection on screen, an icon column when the pane asks for one, an optional
+//! scrollbar, and the matched characters of a query drawn differently from the
+//! rest.
 //!
 //! The icon column is reserved here and filled by whoever supplies the rows —
-//! the library never looks a glyph up (docs/PLAN.md, D11).
+//! the library never looks a glyph up (docs/PLAN.md, D11). The scrollbar is
+//! drawn here too, from the same numbers the window is derived from, so the
+//! pane still holds nothing but its rows and an index (docs/PLAN.md, 22).
 
 use crate::action::Action;
 use crate::component::{Component, Paint, Reaction};
-use crate::spec::Pane;
+use crate::spec::{Pane, ScrollbarStyle, Theme};
 use crate::ui;
 use crate::{Buffer, Modifier, Rect, Style};
 
@@ -59,6 +62,17 @@ impl Row {
     }
 }
 
+/// The `Glyph` style's two glyphs: a filled thumb and the track it runs in.
+/// Backgrounds are the default because that is what a terminal scrollbar looks
+/// like (tmux, helix), but those cells are invisible to anything that reads the
+/// screen back as text, so this style stays available for one.
+const THUMB: &str = "\u{2588}";
+const TRACK: &str = "\u{2591}";
+
+/// A scrollbar needs a column to sit in and at least a couple of cells left
+/// for the text itself.
+const MIN_SCROLLBAR_WIDTH: u16 = 4;
+
 pub struct Menu {
     id: String,
     title: String,
@@ -67,6 +81,11 @@ pub struct Menu {
     /// Width of the icon column in cells, if the pane declares one.
     icon_width: Option<u16>,
     frame: bool,
+    /// Draw the thumb in the last column, and take one cell from the text.
+    scrollbar: bool,
+    /// How that bar is drawn when it is drawn at all — the geometry is the
+    /// same either way, so this only decides what the cells hold.
+    scrollbar_style: ScrollbarStyle,
 }
 
 impl Menu {
@@ -78,6 +97,8 @@ impl Menu {
             selected: 0,
             icon_width: pane.icon_width.map(u16::from),
             frame: pane.frame,
+            scrollbar: pane.scrollbar,
+            scrollbar_style: pane.scrollbar_style(),
         }
     }
 
@@ -113,6 +134,72 @@ impl Menu {
             self.selected + 1 - rows
         }
     }
+
+    /// Where the thumb goes in a track of `track` cells — `(top, length)` — or
+    /// `None` when everything fits and there is nowhere to be.
+    ///
+    /// Both numbers are proportional to the list, so 12 rows in a 200-row list
+    /// is a one-cell bar, and twelve of those in a 200-row list is a bar that
+    /// covers a twelfth of the track. The position comes from the same window
+    /// the rows are drawn from, which is what makes the bar agree with the
+    /// screen instead of reporting a scroll offset the pane does not have.
+    fn thumb(&self, track: usize) -> Option<(usize, usize)> {
+        let total = self.rows.len();
+        if track == 0 || total <= track {
+            return None;
+        }
+        // The share of the track the window covers, rounded, never below one
+        // cell: a bar that vanished would say "everything fits" while it does not.
+        let length = ((track * track + total / 2) / total).clamp(1, track);
+        let travel = track - length;
+        let span = total - track;
+        let top = (travel * self.window(track) + span / 2) / span;
+        Some((top, length))
+    }
+
+    /// Paint the bar once its geometry is decided.
+    ///
+    /// Both styles write the same cells — the pane's last column, with
+    /// `length` of the track's `rows` lit — and differ only in what goes into
+    /// them: a glyph, or a tinted background under a cell nobody writes a glyph
+    /// into. The tinted style paints over the selection's background, which is
+    /// what keeps the bar visible on the row the selection is on.
+    fn draw_bar(
+        &self,
+        buf: &mut Buffer,
+        inner: Rect,
+        rows: usize,
+        top: usize,
+        length: usize,
+        theme: &Theme,
+    ) {
+        let x = inner.right() - 1;
+        match self.scrollbar_style {
+            ScrollbarStyle::Background => {
+                // `set_style`, not a glyph: the cell keeps its blank symbol and
+                // only its background changes. That is the one thing a text
+                // snapshot cannot show and a cell-style assertion can.
+                buf.set_style(
+                    Rect::new(x, inner.y, 1, rows as u16),
+                    Style::default().bg(theme.scrollbar_bg_color()),
+                );
+                buf.set_style(
+                    Rect::new(x, inner.y + top as u16, 1, length as u16),
+                    Style::default().bg(theme.scrollbar_color()),
+                );
+            }
+            ScrollbarStyle::Glyph => {
+                let track = Style::default().fg(theme.scrollbar_bg_color());
+                let thumb = Style::default().fg(theme.scrollbar_color());
+                for row in 0..rows as u16 {
+                    ui::put(buf, x, inner.y + row, 1, TRACK, track);
+                }
+                for row in 0..length as u16 {
+                    ui::put(buf, x, inner.y + top as u16 + row, 1, THUMB, thumb);
+                }
+            }
+        }
+    }
 }
 
 impl Component for Menu {
@@ -131,6 +218,13 @@ impl Component for Menu {
         }
         let rows = inner.height as usize;
         let start = self.window(rows);
+        // The bar is the pane's last column, so the text is one cell narrower.
+        let bar = if self.scrollbar && inner.width >= MIN_SCROLLBAR_WIDTH {
+            self.thumb(rows)
+        } else {
+            None
+        };
+        let text_width = inner.width - u16::from(bar.is_some());
         for (row, data) in self.rows.iter().skip(start).take(rows).enumerate() {
             let selected = start + row == self.selected;
             let y = inner.y + row as u16;
@@ -148,7 +242,7 @@ impl Component for Menu {
             let marked = plain.add_modifier(Modifier::BOLD);
 
             let mut x = inner.x;
-            let mut room = inner.width;
+            let mut room = text_width;
             if let Some(width) = self.icon_width {
                 // An item without a glyph still gets a slot: the theme's
                 // placeholder keeps the text column where the other rows put it.
@@ -167,6 +261,9 @@ impl Component for Menu {
             x += ui::width(marker);
             room = room.saturating_sub(ui::width(marker));
             write_display(buf, x, y, room, data, marked, plain);
+        }
+        if let Some((top, length)) = bar {
+            self.draw_bar(buf, inner, rows, top, length, paint.theme);
         }
     }
 

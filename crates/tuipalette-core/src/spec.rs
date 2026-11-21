@@ -152,6 +152,8 @@ impl UiSpec {
             ("selected_bg", &self.theme.selected_bg),
             ("text", &self.theme.text),
             ("dim", &self.theme.dim),
+            ("scrollbar", &self.theme.scrollbar),
+            ("scrollbar_bg", &self.theme.scrollbar_bg),
         ] {
             if parse_color(value).is_none() {
                 return Err(SpecError::at_path(
@@ -198,6 +200,58 @@ impl UiSpec {
                     "an icon column is at least 1 cell wide; omit `icon_width` for no column",
                 ));
             }
+            if pane.scrollbar && pane.kind != Kind::Menu {
+                return Err(SpecError::at_path(
+                    format!("panes[{i}].scrollbar"),
+                    "only a Menu has a position in it; `scrollbar` belongs to a list",
+                ));
+            }
+            if let Some(style) = pane.scrollbar_style {
+                // A style with nothing to style is a document that thinks it
+                // draws a bar and does not, so both halves are named here.
+                if pane.kind != Kind::Menu {
+                    return Err(SpecError::at_path(
+                        format!("panes[{i}].scrollbar_style"),
+                        "only a Menu has a position in it; `scrollbar_style` belongs to a list",
+                    ));
+                }
+                if !pane.scrollbar {
+                    return Err(SpecError::at_path(
+                        format!("panes[{i}].scrollbar_style"),
+                        format!(
+                            "`{}` is the style of a bar this pane does not draw; add `scrollbar: true`",
+                            style.name()
+                        ),
+                    ));
+                }
+            }
+            if pane.kind != Kind::Counter {
+                // Name the field the document actually wrote, so the error
+                // points at the line to delete.
+                let stray = if pane.format.is_some() {
+                    Some("format")
+                } else if pane.align.is_some() {
+                    Some("align")
+                } else {
+                    None
+                };
+                if let Some(field) = stray {
+                    return Err(SpecError::at_path(
+                        format!("panes[{i}].{field}"),
+                        "only a Counter writes numbers; `format` and `align` belong to one",
+                    ));
+                }
+            }
+            if let Some(written) = &pane.format
+                && let Some(bad) = unfillable(written)
+            {
+                return Err(SpecError::at_path(
+                    format!("panes[{i}].format"),
+                    format!(
+                        "`{bad}` cannot be filled in — a counter knows `{{shown}}` and `{{total}}`"
+                    ),
+                ));
+            }
         }
 
         let mut drawn = BTreeSet::new();
@@ -208,6 +262,38 @@ impl UiSpec {
         crate::keymap::Keymap::from_spec(self)?;
         Ok(())
     }
+}
+
+/// The first thing in a `format` a counter cannot fill in: an unknown
+/// `{placeholder}` or a brace that is not part of one. A document that asks for
+/// `{rows}` is a document whose counter would print the word instead, which is
+/// the kind of typo a validated spec exists to catch.
+///
+/// The scan runs over the string as written — valid placeholders are stepped
+/// over, never deleted first — so the quoted fragment is always a piece of
+/// the document's own text.
+fn unfillable(format: &str) -> Option<String> {
+    let mut from = 0;
+    while let Some(offset) = format[from..].find(['{', '}']) {
+        let at = from + offset;
+        let tail = &format[at..];
+        if tail.starts_with('}') {
+            return Some("}".to_owned());
+        }
+        if let Some(known) = ["{shown}", "{total}"].iter().find(|p| tail.starts_with(**p)) {
+            from = at + known.len();
+            continue;
+        }
+        // Up to the brace that closes this one, or up to (not including) the
+        // next opening brace when a second one starts first.
+        let end = match tail[1..].find(['{', '}']) {
+            Some(close) if tail.as_bytes()[close + 1] == b'}' => close + 2,
+            Some(open) => open + 1,
+            None => tail.len(),
+        };
+        return Some(tail[..end].to_owned());
+    }
+    None
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -238,6 +324,16 @@ pub struct Theme {
     /// degrades the picture instead of shifting the text column.
     #[serde(rename = "icon_placeholder", default = "default_icon_placeholder")]
     pub icon_placeholder: String,
+    /// The scrollbar's thumb (docs/specs/22-scrollbar.md). Its background in
+    /// the `Background` style, its foreground glyph's colour in `Glyph`.
+    #[serde(rename = "scrollbar", default = "default_scrollbar")]
+    pub scrollbar: String,
+    /// The track the thumb runs in: the cell background of the column the
+    /// thumb is not on, or the `░` glyph's colour in `Glyph`. A slight tint
+    /// over whatever the terminal's own background is, since the theme has no
+    /// base colour to mix against.
+    #[serde(rename = "scrollbar_bg", default = "default_scrollbar_bg")]
+    pub scrollbar_bg: String,
 }
 
 fn default_dim() -> String {
@@ -246,6 +342,14 @@ fn default_dim() -> String {
 
 fn default_icon_placeholder() -> String {
     "\u{b7}".to_owned()
+}
+
+fn default_scrollbar() -> String {
+    "#585b70".to_owned()
+}
+
+fn default_scrollbar_bg() -> String {
+    "#45475a".to_owned()
 }
 
 impl Theme {
@@ -265,6 +369,8 @@ impl Default for Theme {
             text: "#cdd6f4".to_owned(),
             dim: default_dim(),
             icon_placeholder: default_icon_placeholder(),
+            scrollbar: default_scrollbar(),
+            scrollbar_bg: default_scrollbar_bg(),
         }
     }
 }
@@ -281,6 +387,12 @@ impl Theme {
     }
     pub fn text_color(&self) -> Color {
         parse_color(&self.text).unwrap_or(Color::Reset)
+    }
+    pub fn scrollbar_color(&self) -> Color {
+        parse_color(&self.scrollbar).unwrap_or(Color::Reset)
+    }
+    pub fn scrollbar_bg_color(&self) -> Color {
+        parse_color(&self.scrollbar_bg).unwrap_or(Color::Reset)
     }
 }
 
@@ -317,10 +429,66 @@ pub struct Pane {
     /// `false` draws the pane's content without the box around it.
     #[serde(rename = "frame", default = "default_true")]
     pub frame: bool,
+    /// For `Menu`: draw a proportional scrollbar in the pane's last column,
+    /// and give the text one cell fewer. Off by default, so no existing
+    /// document changes shape.
+    #[serde(rename = "scrollbar", default)]
+    pub scrollbar: bool,
+    /// For `Menu` with `scrollbar: true`: how the bar is drawn. Omitted means
+    /// `Background` — a tinted cell, the style a terminal scrollbar has in
+    /// `tmux`; `Glyph` draws `░`/`█` instead, which is the only style a
+    /// plain-text snapshot or `capture-pane` can see. Both draw the same
+    /// geometry from the same window (docs/specs/22-scrollbar.md).
+    #[serde(rename = "scrollbar_style", default)]
+    pub scrollbar_style: Option<ScrollbarStyle>,
+    /// For `Counter`: how the two numbers are written. `{shown}` and
+    /// `{total}` are the only placeholders there are.
+    #[serde(rename = "format", default)]
+    pub format: Option<String>,
+    /// For `Counter`: which edge the number hugs.
+    #[serde(rename = "align", default)]
+    pub align: Option<Align>,
 }
 
 fn default_true() -> bool {
     true
+}
+
+/// How a `Menu`'s scrollbar is drawn, chosen per pane. Both styles take the
+/// same column, light the same cells and read the same two theme tokens; only
+/// what goes into those cells differs, so nothing about the geometry or the
+/// window is duplicated (docs/specs/22-scrollbar.md, "Two styles, one bar").
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+pub enum ScrollbarStyle {
+    /// A tinted cell background: `scrollbar_bg` behind the track, `scrollbar`
+    /// behind the thumb, no glyph. What tmux 3.8 does — its manual: "the
+    /// foreground colour is used for the slider, the background for the rest of
+    /// the scrollbar" — and what helix's popup does.
+    #[serde(rename = "Background")]
+    #[default]
+    Background,
+    /// A glyph in the last column: `░` for the track and `█` for the thumb,
+    /// coloured by the same two tokens used as foregrounds. What ratatui's own
+    /// `Scrollbar` widget ships, and the only style a text snapshot sees.
+    #[serde(rename = "Glyph")]
+    Glyph,
+}
+
+impl ScrollbarStyle {
+    /// The name the document writes, for error messages.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Background => "Background",
+            Self::Glyph => "Glyph",
+        }
+    }
+}
+
+impl Pane {
+    /// The scrollbar style this pane draws with: its own, or the default.
+    pub fn scrollbar_style(&self) -> ScrollbarStyle {
+        self.scrollbar_style.unwrap_or_default()
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
@@ -341,6 +509,22 @@ pub enum Kind {
     /// The selected row's `detail` text: a preview that follows the menu.
     #[serde(rename = "Detail")]
     Detail,
+    /// `shown/total`: how many rows survived the query, out of how many
+    /// arrived. The picker writes both numbers after every refilter.
+    #[serde(rename = "Counter")]
+    Counter,
+}
+
+/// Where a [`Kind::Counter`] puts its number inside its rect.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+pub enum Align {
+    #[serde(rename = "Left")]
+    #[default]
+    Left,
+    #[serde(rename = "Right")]
+    Right,
+    #[serde(rename = "Center")]
+    Center,
 }
 
 /// One node of the layout tree: either a leaf that names a pane, or a split

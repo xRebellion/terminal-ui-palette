@@ -4,6 +4,9 @@
 // them, the preview running the full height of the right column, one border
 // around everything.
 //
+// The count in the header is plan item 23: the picker writes it after every
+// refilter, so typing narrows it the way fzf's does.
+//
 // This file is data. No crate names it (docs/PLAN.md, D7).
 (
     window: (title: "clipboard", frame: true),
@@ -21,7 +24,19 @@
             (
                 dir: Vertical,
                 sizes: ["1", "1", "fill"],
-                children: [(pane: "query"), (pane: "header"), (pane: "list")],
+                children: [
+                    (pane: "query"),
+                    // fzf's info line: the label against the left edge, and
+                    // `shown/total` against the right edge of the same row.
+                    // The label keeps its 17 cells and the count takes the
+                    // rest, so a full history (`250/250`, `1000/1000`) fits
+                    // instead of losing the total's last digits.
+                    (dir: Horizontal, sizes: ["min:17", "fill"], children: [
+                        (pane: "header"),
+                        (pane: "count"),
+                    ]),
+                    (pane: "list"),
+                ],
             ),
             // The preview keeps the full height and its own box: its frame is
             // the divider against the list, and the one-cell spacer after it is
@@ -34,6 +49,7 @@
     panes: [
         (id: "query", kind: Input, title: "> ", frame: false),
         (id: "header", kind: Text, items: ["Clipboard History"], frame: false),
+        (id: "count", kind: Counter, align: Right, frame: false),
         (id: "list", kind: Menu, frame: false),
         (id: "preview", kind: Detail, from: "list"),
         (id: "gap", kind: Spacer),

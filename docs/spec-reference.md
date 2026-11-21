@@ -46,6 +46,8 @@ Unknown fields are an error, at every level, in every object. A typo fails the d
 | `text` | `#cdd6f4` | ordinary text |
 | `dim` | `#6c7086` | unfocused borders, status hints |
 | `icon_placeholder` | `·` | fills an icon slot the provider left empty |
+| `scrollbar` | `#585b70` | the scrollbar's thumb: its cell background, or `█`'s colour in the `Glyph` style |
+| `scrollbar_bg` | `#45475a` | the track behind it: the cell background of the column the thumb is not on, or `░`'s colour in `Glyph` |
 
 Colours are `#rrggbb` and nothing else — no names, no 256-colour indexes. `tuipalette --theme other.ron` replaces the document's theme; the file is the same RON object, a bare `(accent: "#ff0000", ...)`.
 
@@ -80,13 +82,17 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 | field | type | default | meaning |
 |---|---|---|---|
 | `id` | string | required | the name `layout.pane` refers to |
-| `kind` | `Text` \| `Input` \| `Menu` \| `Status` \| `Spacer` \| `Detail` | `Text` | what it draws |
+| `kind` | `Text` \| `Input` \| `Menu` \| `Status` \| `Spacer` \| `Detail` \| `Counter` | `Text` | what it draws |
 | `title` | string | `""` | frame title; for an unframed `Input`, the prompt drawn in front of the query |
 | `items` | list of strings | `[]` | for `Status`: the hints, joined with a gap; for `Text`: the lines |
 | `icon_width` | integer | none | icon column width in cells; `None` means no column |
 | `keys` | map | `{}` | bindings only for this pane |
 | `from` | string | the first menu | for `Detail`: the `Menu` whose selection it follows |
 | `frame` | bool | `true` | `false` draws the pane without its box |
+| `scrollbar` | bool | `false` | for `Menu`: draw a scrollbar in the pane's last column, taking one cell from the text |
+| `scrollbar_style` | `Background` \| `Glyph` | `Background` | for `Menu` with `scrollbar: true`: a tinted cell background, or the `░`/`█` glyph column |
+| `format` | string | `{shown}/{total}` | for `Counter`: how the two numbers are written; `{shown}` and `{total}` are the only placeholders |
+| `align` | `Left` \| `Center` \| `Right` | `Left` | for `Counter`: which edge of its rect the number hugs |
 
 ### What each kind draws
 
@@ -94,12 +100,44 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 |---|---|---|
 | `Text` | a framed block of static lines, from `items` | nothing |
 | `Input` | the query line with a cursor; framed, or one bare row with `frame: false` | typing, `Backspace` |
-| `Menu` | the item list: marker, optional icon slot, display, match highlight, a derived scroll window | `Up`/`Down`, `Accept` |
+| `Menu` | the item list: marker, optional icon slot, display, match highlight, a derived scroll window, and with `scrollbar: true` a proportional thumb in the last column, in the `scrollbar_style` the pane asks for | `Up`/`Down`, `Accept` |
 | `Status` | one row of hints, no frame | nothing |
 | `Spacer` | nothing, holding its cells | nothing |
 | `Detail` | the selected row's `detail` text, line by line, clipped to the pane | nothing — the picker refills it when the menu's selection or rows change |
+| `Counter` | `shown/total` — the rows the query left, over the rows that arrived — written in `format` and placed by `align`, on the pane's first row | nothing — the picker writes both numbers after every refilter |
 
 The `Menu` clamps at both ends (no wrap), never scrolls past its window, and highlights the characters that matched the query.
+
+### The scrollbar and the count
+
+`scrollbar: true` on a `Menu` draws the thumb and track in the pane's last column —
+inside the frame when the pane is framed — and gives the text one cell fewer. It
+appears only when there are more rows than cells, and its size is the share of the
+track the window covers, so twelve rows in a two-hundred-row list is a one-cell bar
+in the right place. A document that does not ask for it keeps every column for text.
+
+`scrollbar_style` decides how the same bar is painted, and never where it goes:
+
+- `Background` (the default) tints the cells — `scrollbar_bg` behind the track,
+  `scrollbar` behind the thumb, no glyph, so the column reads as a coloured stripe
+  the way tmux's and helix's scrollbars do. It paints over the selected row's
+  background in that one column, which is what keeps the bar legible.
+- `Glyph` draws `░` and `█` in the same two colours as foregrounds. It is the
+  style to pick when the screen is read back as text — a snapshot, a piped
+  `capture-pane`, a terminal recorder — because a background colour is not text.
+
+A `scrollbar_style` on a pane that does not also say `scrollbar: true`, or on a
+pane that is not a `Menu`, is a spec error naming the field.
+
+A `Counter` is a label the picker fills: it cannot hold focus, and its numbers are
+not something a document writes. The default reads `3/49`;
+`format: "{shown} of {total}"` reads `3 of 49`, and `align: Right` puts it against
+the right edge of its pane, which is where fzf's info line puts it. `total` is every
+item the provider sent, whether or not it is still on screen. A `format` containing
+anything but those two placeholders is a spec error, and so are `format`/`align` on
+a pane that is not a `Counter`. Give the pane room for the largest count it will
+show (`250/250` is seven cells); a pane too narrow drops text from the *left* and
+marks the cut with `…`, so the total is never the number that loses digits.
 
 ## `keys`
 

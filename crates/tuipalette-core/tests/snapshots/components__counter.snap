@@ -1,0 +1,10 @@
+---
+source: crates/tuipalette-core/tests/components.rs
+expression: "ui::screen(&buf)"
+---
+ta▏
+› beta
+  delta
+
+
+                     2/4
