@@ -1,0 +1,8 @@
+# Build limits for this repo, so a build leaves the desktop usable.
+# The host has 12 logical cores; six jobs keep half of them free.
+[build]
+jobs = 6
+# Run every rustc at a lower CPU priority. `nice rustc <args>` is a valid
+# wrapper call (cargo prepends the wrapper to the rustc command line). Swap
+# this for `sccache` if one is ever wanted; cargo takes a single wrapper.
+rustc-wrapper = "nice"
