@@ -10,6 +10,7 @@
 
 use crate::action::Action;
 use crate::component::{Component, Paint, Reaction};
+use crate::pointer::{Mouse, MouseKind};
 use crate::spec::{Pane, ScrollbarStyle, Theme};
 use crate::ui;
 use crate::{Buffer, Modifier, Rect, Style};
@@ -73,6 +74,10 @@ const TRACK: &str = "\u{2591}";
 /// for the text itself.
 const MIN_SCROLLBAR_WIDTH: u16 = 4;
 
+/// Rows one wheel notch moves the selection. One is too slow for a 4000-row
+/// list and a page loses your place; three is what most terminals scroll.
+const WHEEL_STEP: usize = 3;
+
 pub struct Menu {
     id: String,
     title: String,
@@ -86,6 +91,10 @@ pub struct Menu {
     /// How that bar is drawn when it is drawn at all — the geometry is the
     /// same either way, so this only decides what the cells hold.
     scrollbar_style: ScrollbarStyle,
+    /// The row under the pointer, when the document captures the mouse and
+    /// the pointer is over a row. Drawn apart from the selection, never
+    /// mistaken for it: hovering does not change what Enter accepts.
+    hovered: Option<usize>,
 }
 
 impl Menu {
@@ -99,13 +108,43 @@ impl Menu {
             frame: pane.frame,
             scrollbar: pane.scrollbar,
             scrollbar_style: pane.scrollbar_style(),
+            hovered: None,
         }
+    }
+
+    /// The row under the pointer, if any.
+    pub fn hovered(&self) -> Option<usize> {
+        self.hovered
+    }
+
+    /// Index of the selected row.
+    pub fn selected_index(&self) -> usize {
+        self.selected
+    }
+
+    /// The rows are drawn in `area`'s interior when the pane is framed.
+    fn body(&self, area: Rect) -> Rect {
+        if self.frame { ui::inner(area) } else { area }
+    }
+
+    /// The row index drawn at `mouse`, or `None` off the rows — outside the
+    /// body, or below the last row of a short list.
+    fn row_at(&self, mouse: &Mouse, area: Rect) -> Option<usize> {
+        let body = self.body(area);
+        if !body.contains(mouse.position()) {
+            return None;
+        }
+        let index = self.window(body.height as usize) + usize::from(mouse.row - body.y);
+        (index < self.rows.len()).then_some(index)
     }
 
     /// Replace the rows, keeping the selection inside them. This is the hook the
     /// picker holds: each keystroke recomputes the rows.
     pub fn set_rows(&mut self, rows: Vec<Row>) {
         self.rows = rows;
+        // The row under the pointer is now some other row; the next move says
+        // which. Keeping the index would point at a row the user never saw.
+        self.hovered = None;
         self.clamp();
     }
 
@@ -233,6 +272,11 @@ impl Component for Menu {
                     Rect::new(inner.x, y, inner.width, 1),
                     Style::default().bg(paint.theme.selected_color()),
                 );
+            } else if self.hovered == Some(start + row) {
+                buf.set_style(
+                    Rect::new(inner.x, y, inner.width, 1),
+                    Style::default().bg(paint.theme.hover_color()),
+                );
             }
             let plain = Style::default().fg(if selected {
                 paint.theme.accent_color()
@@ -288,6 +332,46 @@ impl Component for Menu {
                 None => Reaction::Handled,
             },
             _ => Reaction::Ignored,
+        }
+    }
+
+    /// Hover follows the pointer; a click selects the row under it, and a
+    /// click on the row already selected accepts it — so a double click
+    /// accepts any row, with no timer to tune; the wheel moves the selection.
+    fn on_mouse(&mut self, mouse: &Mouse, area: Rect) -> Reaction {
+        let under = self.row_at(mouse, area);
+        match mouse.kind {
+            MouseKind::Moved => {
+                if self.hovered == under {
+                    return Reaction::Ignored;
+                }
+                self.hovered = under;
+                Reaction::Handled
+            }
+            MouseKind::Click => {
+                let Some(index) = under else {
+                    return Reaction::Ignored;
+                };
+                if index == self.selected {
+                    return self.update(&Action::Accept);
+                }
+                self.selected = index;
+                self.hovered = Some(index);
+                Reaction::Handled
+            }
+            MouseKind::ScrollUp | MouseKind::ScrollDown => {
+                if !self.body(area).contains(mouse.position()) {
+                    return Reaction::Ignored;
+                }
+                self.selected = if mouse.kind == MouseKind::ScrollUp {
+                    self.selected.saturating_sub(WHEEL_STEP)
+                } else {
+                    (self.selected + WHEEL_STEP).min(self.rows.len().saturating_sub(1))
+                };
+                // The list moved under a pointer that did not.
+                self.hovered = self.row_at(mouse, area);
+                Reaction::Handled
+            }
         }
     }
 }

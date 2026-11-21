@@ -11,6 +11,7 @@ use crate::components::{CounterPane, DetailPane, Item, Menu, Row};
 use crate::error::SpecError;
 use crate::key::Key;
 use crate::matcher::{default_matcher, Matcher};
+use crate::pointer::Mouse;
 use crate::rank::{self, Tier};
 use crate::session::{Outcome, Session};
 use crate::spec::{Kind, UiSpec};
@@ -180,6 +181,17 @@ impl Picker {
     pub fn dispatch(&mut self, action: Action) -> Outcome {
         let before = self.current_query();
         let outcome = self.session.dispatch(action);
+        self.sync_query(before);
+        self.sync_detail();
+        outcome
+    }
+
+    /// A pointer event over a frame drawn in `area` — the area the last
+    /// `render` was given, so the hit test and the picture agree. A click on
+    /// the query pane focuses it; a click on the selected row accepts it.
+    pub fn on_mouse(&mut self, area: Rect, mouse: Mouse) -> Outcome {
+        let before = self.current_query();
+        let outcome = self.session.on_mouse(area, mouse);
         self.sync_query(before);
         self.sync_detail();
         outcome

@@ -18,7 +18,7 @@ Run it with `tuipalette --spec that.ron`, items arriving on stdin.
 
 | field | type | default | meaning |
 |---|---|---|---|
-| `window` | object | required | `title` — used as the terminal/window title; `frame` — draw one box around the whole picker (default `false`) |
+| `window` | object | required | `title` — used as the terminal/window title; `frame` — draw one box around the whole picker (default `false`); `mouse` — capture the mouse for hover, click and wheel (default `false`, see below) |
 | `theme` | object | built-in dark theme | colour tokens, below |
 | `layout` | node | required | the pane tree, below |
 | `panes` | list | `[]` | pane definitions, below |
@@ -47,6 +47,7 @@ Unknown fields are an error, at every level, in every object. A typo fails the d
 | `dim` | `#6c7086` | unfocused borders, status hints |
 | `icon_placeholder` | `·` | fills an icon slot the provider left empty |
 | `scrollbar` | `#585b70` | the scrollbar's thumb: its cell background, or `█`'s colour in the `Glyph` style |
+| `hover_bg` | `#313244` | the row under the pointer, with `window: (mouse: true)`; quieter than `selected_bg`, because hovering is not choosing |
 | `scrollbar_bg` | `#45475a` | the track behind it: the cell background of the column the thumb is not on, or `░`'s colour in `Glyph` |
 
 Colours are `#rrggbb` and nothing else — no names, no 256-colour indexes. `tuipalette --theme other.ron` replaces the document's theme; the file is the same RON object, a bare `(accent: "#ff0000", ...)`.
@@ -107,6 +108,10 @@ Order matters for focus: the focus ring follows the order the panes are **drawn*
 | `Counter` | `shown/total` — the rows the query left, over the rows that arrived — written in `format` and placed by `align`, on the pane's first row | nothing — the picker writes both numbers after every refilter |
 
 The `Menu` clamps at both ends (no wrap), never scrolls past its window, and highlights the characters that matched the query.
+
+### The mouse
+
+`window: (mouse: true)` captures the mouse for the run. It is off by default because capture takes text selection away from the terminal — turn it on for a picker that owns its own window (the shipped `rofi-like` and `clipboard` do), not for one that runs inline in somebody's shell. With it on: moving the pointer tints the row under it with `hover_bg` without selecting it; a click selects the row; a click on the row already selected accepts it, so a double click accepts any row; the wheel moves the selection three rows a notch; a click on another pane (the query) gives it focus. Without it, the picker ignores mouse events even if the terminal sends some. Capture is released on every exit, including an error or a panic.
 
 ### The scrollbar and the count
 

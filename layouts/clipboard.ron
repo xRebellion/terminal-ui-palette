@@ -9,7 +9,9 @@
 //
 // This file is data. No crate names it (docs/PLAN.md, D7).
 (
-    window: (title: "clipboard", frame: true),
+    // Its own floating window, like the launcher: the mouse is captured
+    // (docs/specs/21-mouse.md).
+    window: (title: "clipboard", frame: true, mouse: true),
     theme: (
         accent: "#f92672",
         selected_bg: "#1c1c1a",

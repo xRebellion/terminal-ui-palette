@@ -26,7 +26,7 @@ Last updated: 2026-11-21
   - 18 — Ranking: substring before subsequence, and frecency as a tie-break · done 2026-11-21
   - 19 — Clipboard picker: a preview that follows the selection · done 2026-11-17
   - 20 — Images: the kitty graphics protocol, as a host feature
-  - 21 — Mouse: hover, click and wheel
+  - 21 — Mouse: hover, click and wheel · done 2026-11-21
   - 22 — A scrollbar, as a pane option · done 2026-11-18
   - 23 — The item count (`shown/total`) · done 2026-11-18
   - 24 — A README that is true · done 2026-11-17
@@ -180,7 +180,7 @@ Verified before writing this plan: root `/home/rebellion/Code/hobby/terminal-ui-
 - after: 19 — the detail pane is the slot an image would fill
 - detail: `docs/specs/20-images.md`
 
-### 21 — Mouse: hover, click and wheel
+### 21 — Mouse: hover, click and wheel · done 2026-11-21
 - Every crossterm mouse event currently falls through the key path and is dropped (`tuipalette-tui/src/input.rs` translates keys only). A picker that a user drives with a mouse needs three things: hit-testing a point against the rects the layout produced, a `&Action` a component can answer for hover/click/scroll, and mouse capture enabled and disabled around the run (it takes text selection away from the terminal, so it must be released on every exit path, including a panic).
 - Scope: moving the pointer highlights the row under it (a hover state the menu keeps), a click selects that row, a double click (or click on the selected row) accepts, the wheel scrolls the list, and clicking the query pane focuses it. Nothing changes for a document that does not want this: capture stays off unless the document asks (`window: (mouse: true)`), because a picker that steals the mouse in a pipeline is a bug.
 - checkable: `docs/specs/21-mouse.md`; `scripts/pty-check.py` driving SGR mouse sequences (`ESC[<0;x;yM`/`m`) into a real run of `layouts/rofi-like.ron`: hover moves the highlight, click accepts the row under the pointer, wheel scrolls a 200-row list.

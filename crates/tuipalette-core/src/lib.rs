@@ -14,6 +14,7 @@ pub mod keymap;
 pub mod layout;
 pub mod matcher;
 pub mod picker;
+pub mod pointer;
 pub mod rank;
 pub mod source;
 pub mod session;
@@ -24,7 +25,7 @@ pub mod ui;
 // and styling. Re-inventing them would buy nothing; the `ratatui` facade and
 // `crossterm` stay out of this crate entirely (docs/PLAN.md, D1).
 pub use ratatui_core::buffer::Buffer;
-pub use ratatui_core::layout::Rect;
+pub use ratatui_core::layout::{Position, Rect};
 pub use ratatui_core::style::{Color, Modifier, Style};
 
 pub use action::Action;
@@ -35,6 +36,7 @@ pub use key::{Key, KeyCode, Mods, Phase};
 pub use keymap::Keymap;
 pub use matcher::{default_matcher, Match, Matcher};
 pub use picker::Picker;
+pub use pointer::{Mouse, MouseKind};
 pub use source::{parse_json_line, parse_line, stream, stream_json, stdin};
 pub use session::{Outcome, Session};
 pub use spec::{Format, UiSpec};

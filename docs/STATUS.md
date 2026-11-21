@@ -2,16 +2,17 @@
 Last updated: 2026-11-21
 
 ## What works
-- The workspace builds and every suite passes — `cargo test --workspace` → `112 passed, 0 failed` (core 97, tui 4, bin 11)
+- The workspace builds and every suite passes — `cargo test --workspace` → `121 passed, 0 failed` (core 104, tui 6, bin 11)
 - All four shipped documents validate, so a schema change has a cheap gate — `for f in layouts/*.ron; do tuipalette --check --spec $f; done` → `clipboard.ron: ok — 6 panes, 2 bindings`, `dmenu.ron: ok — 3 panes, 1 binding`, `rofi-like.ron: ok — 3 panes, 2 bindings`, `wifi.ron: ok — 3 panes, 2 bindings`
 - The dmenu contract is driven without a terminal emulator: items in, keys, one value out — `scripts/pty-check.py ./target/release/tuipalette layouts/dmenu.ron '\x1b[B\r'` → `exit=0 value=b'b\n'`
 - A long list says where in it you are, in whichever of two styles the document asks for: `scrollbar: true` on a `Menu` draws a proportional thumb in the pane's last column and `scrollbar_style` picks the drawing — `Background` (the default: `scrollbar_bg`/`scrollbar` as cell backgrounds, the way tmux and helix draw one) or `Glyph` (`░`/`█`, the only style a text snapshot shows); off by default so no shipped document moved — `cargo test -p tuipalette-core --test components` → `28 passed`, 12 snapshots including `menu_scrollbar`/`menu_scrollbar_end`, and a live 200-row run puts the thumb on the same row in both styles (`....T_______..` → `....___T____..` after 100 `Down`s)
 - It also says how many rows it found: `kind: Counter` (`format`, `align`) is written by the picker after every refilter — `2/4` on a typed query; the clipboard layout's header row carries it and keeps every digit of a full history — `the_clipboard_count_keeps_every_digit_of_a_full_history` → `250/250`, `133/250`, `1000/1000` at 106x26, and the same three live in tmux (it drew `250/25` before the 2026-11-21 review fix); a counter with no room cuts from the left (`…0/250`)
 - Three of four rofi binds are the picker's, committed in the dotfiles (`02c34c0`): `grep -n TUIPALETTE ~/dotfiles_private/hypr/conf/binds.lua` → `R`, `Space`, `SHIFT + COMMA`; `XF86Calculator` is still `rofi -show calc`
 - The floating rule is installed and committed — `grep -c tuipalette-floating ~/dotfiles_private/hypr/conf/windowrules.lua` → `1`
-- The clipboard picker works (rows, the preview that follows the selection, the paste) but is **shelved**: `SUPER+Shift+V` still runs `cliphist-fzf.fish` until mouse (21) lands and the image consequence of 20's spec is recorded — the scrollbar (22) and the count (23) are in (D19)
+- The clipboard picker works (rows, the preview that follows the selection, the paste) but is **shelved**: `SUPER+Shift+V` still runs `cliphist-fzf.fish` until the image consequence of 20's spec is recorded — scrollbar (22), count (23) and mouse (21) are in (D19)
 - Providers answer: `scripts/run-command.sh --list` → `4671`, `scripts/apps.sh` → `106`, `scripts/switch-window.sh --list` → `4` (live clients), `scripts/clipboard.sh --list` → `28`
 - Typed queries rank a literal hit above a scattered one, and usage still breaks ties after typing (18, D20) — `examples/rank.rs` on the real app list → `kn`: Arknights: Endfield, Arknights, Konsole (was Konsole first); `pty-check.py … rofi-like.ron 'kn\r'` → `lutris:rungameid/12` (was `konsole`)
+- The mouse works where a document opts in (`window: (mouse: true)`; `rofi-like` and `clipboard` do): hover tints without selecting, click selects, a click on the selected row accepts, the wheel moves three rows, a click on the query focuses it — `pty-check.py` with SGR sequences into `layouts/rofi-like.ron` over 200 rows → click+click `row 003`, 10 notches + Enter `row 031`; capture released on Escape (`ESC[?1000l`); `dmenu.ron` never enables it
 
 ## Known broken and believed
 - **Known gap:** enter with no match does nothing unless the caller passes `--accept-query` — `pty-check.py … 'zzz\r'` → no exit within the harness's 10 s, against `exit=0 value=b'zzz\n'` with the flag. A document cannot decide it yet; that is 16's `rules`. Blocks next step: no
@@ -33,10 +34,9 @@ Last updated: 2026-11-21
 
 ## Next steps
 - [ ] 20 — the spec is written and decides **no graphics in v1** (`docs/specs/20-images.md`, committed); what is left is the user's choice for D19 — unshelve with image rows as text, or keep fzf for images — recorded as a new decision (D21), then 20 is done
-- [ ] 21 — mouse capture, hover, click and wheel, opt-in via `window: (mouse: true)` — SGR sequences driven through `scripts/pty-check.py`
 - [ ] 16 — rules: conditional actions and document transitions; it blocks 17, and it is where accept-on-empty becomes data
 - [ ] 17 — revisit herdr and the wifi flow against `docs/specs/17-revisit.md`
-- [ ] rewire `SUPER+Shift+V` to `scripts/clipboard.sh` and unshelve it (closes D19) — after D21 and item 21
+- [ ] rewire `SUPER+Shift+V` to `scripts/clipboard.sh` and unshelve it (closes D19) — after D21
 - [ ] no plan item covers `XF86Calculator` (`rofi -show calc`, benched in 14 for want of an expression component), and the goal says no rofi call remains on a keybind — add an item or narrow the goal
 
 ## How to reproduce the verification

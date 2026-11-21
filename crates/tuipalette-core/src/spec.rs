@@ -154,6 +154,7 @@ impl UiSpec {
             ("dim", &self.theme.dim),
             ("scrollbar", &self.theme.scrollbar),
             ("scrollbar_bg", &self.theme.scrollbar_bg),
+            ("hover_bg", &self.theme.hover_bg),
         ] {
             if parse_color(value).is_none() {
                 return Err(SpecError::at_path(
@@ -306,6 +307,11 @@ pub struct Window {
     /// which is how a single-boxed, divided layout is written.
     #[serde(rename = "frame", default)]
     pub frame: bool,
+    /// Capture the mouse: hover, click and wheel (docs/specs/21-mouse.md). Off
+    /// by default, because capture takes text selection away from the
+    /// terminal, and a picker that steals the mouse in a pipeline is a bug.
+    #[serde(rename = "mouse", default)]
+    pub mouse: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -334,6 +340,11 @@ pub struct Theme {
     /// base colour to mix against.
     #[serde(rename = "scrollbar_bg", default = "default_scrollbar_bg")]
     pub scrollbar_bg: String,
+    /// The background of the row under the pointer, with `window: (mouse:
+    /// true)` (docs/specs/21-mouse.md). Quieter than `selected_bg` on
+    /// purpose: hovering is not choosing.
+    #[serde(rename = "hover_bg", default = "default_hover_bg")]
+    pub hover_bg: String,
 }
 
 fn default_dim() -> String {
@@ -350,6 +361,10 @@ fn default_scrollbar() -> String {
 
 fn default_scrollbar_bg() -> String {
     "#45475a".to_owned()
+}
+
+fn default_hover_bg() -> String {
+    "#313244".to_owned()
 }
 
 impl Theme {
@@ -371,6 +386,7 @@ impl Default for Theme {
             icon_placeholder: default_icon_placeholder(),
             scrollbar: default_scrollbar(),
             scrollbar_bg: default_scrollbar_bg(),
+            hover_bg: default_hover_bg(),
         }
     }
 }
@@ -393,6 +409,9 @@ impl Theme {
     }
     pub fn scrollbar_bg_color(&self) -> Color {
         parse_color(&self.scrollbar_bg).unwrap_or(Color::Reset)
+    }
+    pub fn hover_color(&self) -> Color {
+        parse_color(&self.hover_bg).unwrap_or(Color::Reset)
     }
 }
 

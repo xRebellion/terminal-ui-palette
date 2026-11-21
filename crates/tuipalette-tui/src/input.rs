@@ -2,8 +2,26 @@
 //! terminal's key event looks like, and the only place that drops a release or a
 //! repeat before the router sees it (docs/PLAN.md, D1).
 
-use crossterm::event::{KeyCode as TermCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{
+    KeyCode as TermCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent,
+    MouseEventKind,
+};
 use tuipalette_core::key::{self, Key, KeyCode, Mods, Phase};
+use tuipalette_core::{Mouse, MouseKind};
+
+/// One terminal mouse event as ours, or `None` for one the picker has no use
+/// for: a release, a right or middle button, a sideways wheel. A drag is a
+/// move — the pointer is still somewhere, and hover should follow it.
+pub fn translate_mouse(event: MouseEvent) -> Option<Mouse> {
+    let kind = match event.kind {
+        MouseEventKind::Moved | MouseEventKind::Drag(_) => MouseKind::Moved,
+        MouseEventKind::Down(MouseButton::Left) => MouseKind::Click,
+        MouseEventKind::ScrollUp => MouseKind::ScrollUp,
+        MouseEventKind::ScrollDown => MouseKind::ScrollDown,
+        _ => return None,
+    };
+    Some(Mouse::new(kind, event.column, event.row))
+}
 
 /// One terminal event as a keypress, or `None` for an event that is not one.
 pub fn translate(event: KeyEvent) -> Option<Key> {
@@ -80,6 +98,33 @@ mod tests {
         let upper = event(TermCode::Char('J'), KeyModifiers::SHIFT, KeyEventKind::Press);
         let key = translate(upper).expect("a key");
         assert_eq!(key.normalised(), Key::new(KeyCode::Char('j'), Mods::SHIFT));
+    }
+
+    fn mouse(kind: MouseEventKind) -> MouseEvent {
+        MouseEvent { kind, column: 7, row: 3, modifiers: KeyModifiers::NONE }
+    }
+
+    #[test]
+    fn the_mouse_events_a_picker_uses_are_translated() {
+        let at = |kind| Some(Mouse::new(kind, 7, 3));
+        assert_eq!(translate_mouse(mouse(MouseEventKind::Moved)), at(MouseKind::Moved));
+        assert_eq!(translate_mouse(mouse(MouseEventKind::Drag(MouseButton::Left))), at(MouseKind::Moved));
+        assert_eq!(translate_mouse(mouse(MouseEventKind::Down(MouseButton::Left))), at(MouseKind::Click));
+        assert_eq!(translate_mouse(mouse(MouseEventKind::ScrollUp)), at(MouseKind::ScrollUp));
+        assert_eq!(translate_mouse(mouse(MouseEventKind::ScrollDown)), at(MouseKind::ScrollDown));
+    }
+
+    #[test]
+    fn the_rest_of_the_mouse_is_dropped() {
+        for kind in [
+            MouseEventKind::Up(MouseButton::Left),
+            MouseEventKind::Down(MouseButton::Right),
+            MouseEventKind::Down(MouseButton::Middle),
+            MouseEventKind::ScrollLeft,
+            MouseEventKind::ScrollRight,
+        ] {
+            assert_eq!(translate_mouse(mouse(kind)), None, "{kind:?}");
+        }
     }
 
     #[test]

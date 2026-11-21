@@ -12,6 +12,7 @@ use crate::error::SpecError;
 use crate::key::{Key, KeyCode};
 use crate::keymap::Keymap;
 use crate::layout;
+use crate::pointer::{Mouse, MouseKind};
 use crate::spec::UiSpec;
 use crate::{Buffer, Rect};
 
@@ -204,21 +205,87 @@ impl Session {
         self.slot = Some(slot as usize);
     }
 
-    /// Paint every pane in the rect the layout gave it.
-    pub fn render(&self, area: Rect, buf: &mut Buffer) {
-        // One frame around the whole picker, if the document asks for one:
-        // the panes inside then draw into its interior, which is how a
-        // single-boxed layout with dividers inside is written.
+    /// Move focus to a pane, if it is one the ring can land on.
+    pub fn focus_on(&mut self, id: &str) -> bool {
+        let Some(slot) = self
+            .ring
+            .iter()
+            .position(|&i| self.components[i].id() == id)
+        else {
+            return false;
+        };
+        self.slot = Some(slot);
+        true
+    }
+
+    /// The rect every pane is drawn in for a frame of `area` — the one source
+    /// both drawing and hit-testing read, so a click lands where the eye sees.
+    fn rects(&self, area: Rect) -> Vec<(String, Rect)> {
         let area = if self.spec.window.frame {
-            crate::ui::frame(buf, area, "", false, &self.spec.theme)
+            crate::ui::inner(area)
         } else {
             area
         };
         // A validated spec cannot fail to resolve, and the spec is validated in
         // 'new', so nothing is drawn rather than panicking if that ever changes.
-        let Ok(rects) = layout::resolve(&self.spec.layout, area) else {
-            return;
-        };
+        layout::resolve(&self.spec.layout, area).unwrap_or_default()
+    }
+
+    /// A pointer event over a frame of `area`. A click first moves focus to
+    /// the pane under it (when that pane can hold focus); then every pane is
+    /// offered the event with its own rect, so the one under the pointer can
+    /// act and the others can drop a hover. An `Invoke` from a pane is an
+    /// accept, exactly as from a key.
+    ///
+    /// A document that did not ask for the mouse ignores it here too, not only
+    /// by leaving capture off: a terminal can still deliver a mouse sequence
+    /// (another program enabled reporting, or bytes arrive on the tty), and
+    /// the opt-in has to mean the picker never acts on one.
+    pub fn on_mouse(&mut self, area: Rect, mouse: Mouse) -> Outcome {
+        if !self.spec.window.mouse {
+            return Outcome::Continue;
+        }
+        let rects = self.rects(area);
+        if mouse.kind == MouseKind::Click {
+            let hit = rects
+                .iter()
+                .find(|(_, rect)| rect.contains(mouse.position()))
+                .map(|(id, _)| id.clone());
+            if let Some(id) = hit {
+                self.focus_on(&id);
+            }
+        }
+        let mut outcome = Outcome::Continue;
+        for (id, rect) in rects {
+            let Some(&i) = self.by_id.get(&id) else {
+                continue;
+            };
+            match self.components[i].on_mouse(&mouse, rect) {
+                Reaction::Ignored | Reaction::Handled => {}
+                Reaction::Emit(Action::Invoke(command)) => {
+                    let value = self.components[i].value();
+                    outcome = Outcome::Invoke { command, value };
+                }
+                Reaction::Emit(next) => {
+                    let next = self.dispatch(next);
+                    if next != Outcome::Continue {
+                        outcome = next;
+                    }
+                }
+            }
+        }
+        outcome
+    }
+
+    /// Paint every pane in the rect the layout gave it.
+    pub fn render(&self, area: Rect, buf: &mut Buffer) {
+        // One frame around the whole picker, if the document asks for one:
+        // the panes inside then draw into its interior, which is how a
+        // single-boxed layout with dividers inside is written.
+        if self.spec.window.frame {
+            crate::ui::frame(buf, area, "", false, &self.spec.theme);
+        }
+        let rects = self.rects(area);
         let focused = self.focus().map(str::to_owned);
         for (id, rect) in rects {
             let Some(&i) = self.by_id.get(&id) else {

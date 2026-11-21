@@ -4,7 +4,9 @@
 // This file is data. No crate names it; it is shipped so a keybind has
 // something to point at, and edited freely (docs/PLAN.md, D7).
 (
-    window: (title: "launcher"),
+    // A window of its own on a keybind, so capturing the mouse takes nothing
+    // from anyone: hover, click, double click and wheel (docs/specs/21-mouse.md).
+    window: (title: "launcher", mouse: true),
     theme: (
         accent: "#a6e62a",
         selected_bg: "#141411",

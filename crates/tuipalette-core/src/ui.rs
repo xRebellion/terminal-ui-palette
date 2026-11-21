@@ -14,9 +14,18 @@ use unicode_width::UnicodeWidthStr;
 /// A focused frame takes the accent colour, an unfocused one the theme's dim
 /// token. When the area cannot hold a frame the returned rect is empty and
 /// nothing is drawn — a component then has nothing to write into.
-pub fn frame(buf: &mut Buffer, area: Rect, title: &str, focused: bool, theme: &Theme) -> Rect {
+/// The interior a frame around `area` leaves, without drawing it — what a
+/// hit test needs to agree with what `frame` drew.
+pub fn inner(area: Rect) -> Rect {
     if area.width < 2 || area.height < 2 {
         return Rect::new(area.x, area.y, 0, 0);
+    }
+    Rect::new(area.left() + 1, area.top() + 1, area.width - 2, area.height - 2)
+}
+
+pub fn frame(buf: &mut Buffer, area: Rect, title: &str, focused: bool, theme: &Theme) -> Rect {
+    if area.width < 2 || area.height < 2 {
+        return inner(area);
     }
     let style = Style::default().fg(if focused {
         theme.accent_color()
@@ -43,7 +52,7 @@ pub fn frame(buf: &mut Buffer, area: Rect, title: &str, focused: bool, theme: &T
     put(buf, area.left(), bottom, "╰");
     put(buf, right, bottom, "╯");
 
-    let inner = Rect::new(area.left() + 1, area.top() + 1, area.width - 2, area.height - 2);
+    let inner = inner(area);
     if !title.is_empty() && inner.width > 4 {
         let room = (inner.width as usize).saturating_sub(2);
         let label: String = format!(" {title} ").chars().take(room).collect();

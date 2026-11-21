@@ -8,6 +8,7 @@
 use std::any::Any;
 
 use crate::action::Action;
+use crate::pointer::Mouse;
 use crate::spec::Theme;
 use crate::{Buffer, Rect};
 
@@ -51,6 +52,14 @@ pub trait Component: Any {
     fn render(&self, paint: &Paint<'_>, buf: &mut Buffer);
 
     fn update(&mut self, _action: &Action) -> Reaction {
+        Reaction::Ignored
+    }
+
+    /// A pointer event, offered to every pane with the rect the layout gave
+    /// it — the same `area` its `render` gets — so a pane can tell a hit from
+    /// a miss itself, and forget a hover when the pointer leaves. Most panes
+    /// ignore the mouse; the router has already moved focus on a click.
+    fn on_mouse(&mut self, _mouse: &Mouse, _area: Rect) -> Reaction {
         Reaction::Ignored
     }
 

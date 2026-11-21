@@ -188,11 +188,12 @@ Open: conditional actions and document transitions (16), the herdr and wifi
 revisit (17). Ranking (18) is done: a literal hit outranks a scattered one, and
 the provider's usage order breaks ties after typing too (D20).
 
-Also open: mouse support — hover, click and wheel (21). Decided against for v1,
-with the evidence in `docs/specs/20-images.md`: images over the kitty graphics
-protocol (20) — an image is not a cell, so it belongs to a host, not the core.
-The clipboard picker is implemented but not wired to a keybind until mouse lands
-and the image question is settled for it (D19).
+Mouse support (21) is done and opt-in: `window: (mouse: true)` gives hover, click,
+double click and wheel. Decided against for v1, with the evidence in
+`docs/specs/20-images.md`: images over the kitty graphics protocol (20) — an image
+is not a cell, so it belongs to a host, not the core. The clipboard picker is
+implemented but not wired to a keybind until the image question is settled for it
+(D19).
 
 ## License
 

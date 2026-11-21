@@ -10,8 +10,8 @@
 use tuipalette_core::components::{CounterPane, Item, Menu, Spacer};
 use tuipalette_core::spec::{Format, ScrollbarStyle, Theme};
 use tuipalette_core::{
-    ui, Action, Buffer, Color, Component, Key, KeyCode, Mods, Outcome, Paint, Picker, Rect,
-    Session, UiSpec,
+    ui, Action, Buffer, Color, Component, Key, KeyCode, Mods, Mouse, MouseKind, Outcome, Paint,
+    Picker, Rect, Session, UiSpec,
 };
 
 /// The clipboard layout is the fzf picker's shape: one border around
@@ -413,6 +413,142 @@ fn the_scrollbar_thumb_follows_the_selection() {
     assert!(tops.windows(2).all(|pair| pair[1] >= pair[0]), "the thumb never goes backwards: {tops:?}");
 }
 
+// --- the mouse (21) ---------------------------------------------------------
+
+/// A query pane over a framed list, with the mouse captured — the rofi-like
+/// shape. 30x10: the query is rows 0..3, the list's frame rows 3..10, so its
+/// rows are drawn on screen rows 4..9 and columns 1..29.
+const POINTED: &str = r##"(
+    window: (title: "t", mouse: true),
+    layout: (dir: Vertical, sizes: ["3", "fill"], children: [(pane: "q"), (pane: "m")]),
+    panes: [
+        (id: "q", kind: Input, title: "search"),
+        (id: "m", kind: Menu, title: "apps"),
+    ],
+)"##;
+
+const AREA: Rect = Rect { x: 0, y: 0, width: 30, height: 10 };
+
+fn pointed(rows: usize) -> Picker {
+    let mut picker = Picker::new(spec(POINTED)).expect("picker must build");
+    picker.push((0..rows).map(|n| Item::line(format!("row {n:02}"))));
+    picker
+}
+
+fn menu(picker: &Picker) -> &Menu {
+    picker.session().pane::<Menu>("m").expect("the menu pane")
+}
+
+fn at(kind: MouseKind, column: u16, row: u16) -> Mouse {
+    Mouse::new(kind, column, row)
+}
+
+/// Moving over a row highlights it with `hover_bg`, without selecting it;
+/// moving off the rows forgets it.
+#[test]
+fn hovering_highlights_the_row_under_the_pointer() {
+    let mut picker = pointed(10);
+    picker.on_mouse(AREA, at(MouseKind::Moved, 5, 6));
+    assert_eq!(menu(&picker).hovered(), Some(2), "screen row 6 is the third row");
+    assert_eq!(menu(&picker).selected_index(), 0, "hovering is not choosing");
+
+    let mut buf = Buffer::empty(AREA);
+    picker.render(AREA, &mut buf);
+    let theme = Theme::default();
+    let bg = |y: u16| buf.cell((10, y)).and_then(|cell| cell.style().bg);
+    assert_eq!(bg(6), Some(theme.hover_color()), "the hovered row is tinted");
+    assert_eq!(bg(4), Some(theme.selected_color()), "the selection keeps its own colour");
+    assert_eq!(bg(5), Some(Color::Reset), "a row neither hovered nor selected is plain");
+
+    picker.on_mouse(AREA, at(MouseKind::Moved, 5, 1));
+    assert_eq!(menu(&picker).hovered(), None, "over the query, nothing is hovered");
+}
+
+/// A click selects; a click on the selected row accepts it — which is what a
+/// double click does, with no timer to tune.
+#[test]
+fn a_click_selects_and_a_second_click_accepts() {
+    let mut picker = pointed(10);
+    assert_eq!(picker.on_mouse(AREA, at(MouseKind::Click, 5, 7)), Outcome::Continue);
+    assert_eq!(menu(&picker).selected_index(), 3);
+    match picker.on_mouse(AREA, at(MouseKind::Click, 5, 7)) {
+        Outcome::Invoke { value, .. } => assert_eq!(value.as_deref(), Some("row 03")),
+        other => panic!("a click on the selected row accepts it, got {other:?}"),
+    }
+}
+
+/// Clicks that hit no row do nothing: the frame, the empty space under a short
+/// list, the query pane.
+#[test]
+fn a_click_off_the_rows_selects_nothing() {
+    let mut picker = pointed(2);
+    for (column, row) in [(0, 5), (29, 5), (5, 3), (5, 8), (5, 9)] {
+        assert_eq!(picker.on_mouse(AREA, at(MouseKind::Click, column, row)), Outcome::Continue);
+        assert_eq!(menu(&picker).selected_index(), 0, "({column},{row})");
+    }
+}
+
+/// The wheel moves the selection three rows a notch, and the window follows,
+/// so a click after scrolling lands on the row now drawn under the pointer.
+#[test]
+fn the_wheel_scrolls_and_a_click_hits_the_scrolled_rows() {
+    let mut picker = pointed(200);
+    for _ in 0..10 {
+        picker.on_mouse(AREA, at(MouseKind::ScrollDown, 5, 6));
+    }
+    assert_eq!(menu(&picker).selected_index(), 30);
+    picker.on_mouse(AREA, at(MouseKind::ScrollUp, 5, 6));
+    assert_eq!(menu(&picker).selected_index(), 27);
+
+    // Five rows on screen and the selection last: rows 23..=27 are drawn.
+    picker.on_mouse(AREA, at(MouseKind::Click, 5, 4));
+    assert_eq!(menu(&picker).selected_index(), 23, "the top drawn row is 23");
+
+    for _ in 0..100 {
+        picker.on_mouse(AREA, at(MouseKind::ScrollDown, 5, 6));
+    }
+    assert_eq!(menu(&picker).selected_index(), 199, "the wheel stops at the end");
+    picker.on_mouse(AREA, at(MouseKind::ScrollDown, 5, 1));
+    assert_eq!(menu(&picker).selected_index(), 199, "the wheel over the query does nothing");
+}
+
+/// A click moves focus to the pane under it, so clicking the query pane puts
+/// typing back there after the list took focus.
+#[test]
+fn a_click_moves_focus_to_the_pane_under_it() {
+    let mut picker = pointed(10);
+    picker.dispatch(Action::FocusNext);
+    assert_eq!(picker.session().focus(), Some("m"));
+    picker.on_mouse(AREA, at(MouseKind::Click, 5, 1));
+    assert_eq!(picker.session().focus(), Some("q"));
+}
+
+/// Without `window: (mouse: true)` the picker ignores a mouse event even if
+/// one arrives — the opt-in is the library's promise, not only the terminal's.
+#[test]
+fn a_document_without_the_mouse_ignores_it() {
+    let text = POINTED.replace("mouse: true", "mouse: false");
+    let mut picker = Picker::new(spec(&text)).expect("picker must build");
+    picker.push((0..10).map(|n| Item::line(format!("row {n:02}"))));
+    for kind in [MouseKind::Moved, MouseKind::Click, MouseKind::Click, MouseKind::ScrollDown] {
+        assert_eq!(picker.on_mouse(AREA, at(kind, 5, 7)), Outcome::Continue, "{kind:?}");
+    }
+    assert_eq!(menu(&picker).selected_index(), 0);
+    assert_eq!(menu(&picker).hovered(), None);
+}
+
+/// The hit test reads the same rects drawing does, so a `window.frame` that
+/// shifts every pane by one cell shifts the clicks with it.
+#[test]
+fn a_framed_window_shifts_the_hit_test_with_the_picture() {
+    let text = POINTED.replace("mouse: true)", "mouse: true, frame: true)");
+    let mut picker = Picker::new(spec(&text)).expect("picker must build");
+    picker.push((0..10).map(|n| Item::line(format!("row {n:02}"))));
+    // One more cell of frame: the list's first row is now screen row 5.
+    picker.on_mouse(AREA, at(MouseKind::Click, 5, 6));
+    assert_eq!(menu(&picker).selected_index(), 1);
+}
+
 // --- the counter (23) -------------------------------------------------------
 
 const COUNTED: &str = r##"(
@@ -525,7 +661,7 @@ fn the_clipboard_count_keeps_every_digit_of_a_full_history() {
     let text = include_str!("../../../layouts/clipboard.ron");
     for (rows, query, expected) in [(250, "", "250/250"), (250, "1", "133/250"), (1000, "", "1000/1000")] {
         let mut picker = Picker::new(spec(text)).expect("the shipped layout must build");
-        picker.push((1..=rows).map(|n| Item::line(&n.to_string())));
+        picker.push((1..=rows).map(|n| Item::line(n.to_string())));
         typed(&mut picker, query);
         let area = Rect::new(0, 0, 106, 26);
         let mut buf = Buffer::empty(area);

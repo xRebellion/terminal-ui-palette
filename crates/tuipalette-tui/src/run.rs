@@ -8,7 +8,7 @@ use std::io::{self, Stdout};
 use std::sync::mpsc::Receiver;
 use std::time::Instant;
 
-use crossterm::event::{self, Event};
+use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{cursor, ExecutableCommand};
 use ratatui::backend::CrosstermBackend;
@@ -34,6 +34,27 @@ pub struct Options {
 pub enum Exit {
     Accepted(String),
     Cancelled,
+}
+
+/// Mouse capture, held for exactly as long as this value lives. Capture takes
+/// text selection away from the terminal, so it must be given back on every
+/// way out: a normal exit, an `?` on an I/O error, and a panic unwinding
+/// through `run` — `Drop` covers all three. No profile sets
+/// `panic = "abort"`; if one ever does, nothing unwinds and this needs a
+/// panic hook (and so does raw mode, which has the same exposure today).
+struct MouseCapture;
+
+impl MouseCapture {
+    fn enable() -> io::Result<Self> {
+        io::stdout().execute(EnableMouseCapture)?;
+        Ok(Self)
+    }
+}
+
+impl Drop for MouseCapture {
+    fn drop(&mut self) {
+        io::stdout().execute(DisableMouseCapture).ok();
+    }
 }
 
 pub fn run(picker: &mut Picker, source: Receiver<Item>, options: &Options) -> io::Result<Exit> {
@@ -62,7 +83,16 @@ pub fn run(picker: &mut Picker, source: Receiver<Item>, options: &Options) -> io
         eprintln!("phase terminal-init {}", millis(start));
     }
 
-    let outcome = loop_until_decided(&mut terminal, picker, &source, options)?;
+    // Only when the document asks (docs/specs/21-mouse.md): a picker that
+    // captures the mouse by default breaks select-to-copy for every caller.
+    let capture = if picker.session().spec().window.mouse {
+        Some(MouseCapture::enable()?)
+    } else {
+        None
+    };
+    let outcome = loop_until_decided(&mut terminal, picker, &source, options);
+    drop(capture);
+    let outcome = outcome?;
 
     terminal.show_cursor().ok();
     if fullscreen {
@@ -91,10 +121,15 @@ fn loop_until_decided(
 ) -> io::Result<Exit> {
     let mut dirty = true;
     let mut first = true;
+    // The rect the last frame was drawn in. A mouse event is in terminal
+    // cells, and an inline viewport does not start at row 0, so the hit test
+    // has to use the very rect the picture was laid out in.
+    let mut drawn = Rect::default();
     loop {
         if dirty {
             terminal.draw(|frame| {
                 let area: Rect = frame.area();
+                drawn = area;
                 picker.render(area, frame.buffer_mut());
             })?;
             dirty = false;
@@ -115,6 +150,18 @@ fn loop_until_decided(
                         continue;
                     };
                     match picker.on_key(key) {
+                        Outcome::Quit => return Ok(Exit::Cancelled),
+                        Outcome::Invoke { value, .. } => {
+                            return Ok(Exit::Accepted(value.unwrap_or_default()));
+                        }
+                        Outcome::Continue => dirty = true,
+                    }
+                }
+                Event::Mouse(raw) => {
+                    let Some(mouse) = input::translate_mouse(raw) else {
+                        continue;
+                    };
+                    match picker.on_mouse(drawn, mouse) {
                         Outcome::Quit => return Ok(Exit::Cancelled),
                         Outcome::Invoke { value, .. } => {
                             return Ok(Exit::Accepted(value.unwrap_or_default()));
